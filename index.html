@@ -18,11 +18,11 @@
 :root{--bg:#0D1117;--card:#161B22;--card2:#1C2128;--card3:#21262D;--border:rgba(255,255,255,.1);--border2:rgba(255,255,255,.04);--text:#F0F6FC;--text2:#C9D1D9;--muted:#8B949E;--dim:#484F58;--gold:#D4A843;--gdbg:rgba(212,168,67,.14);--green:#3FB950;--gnbg:rgba(63,185,80,.14);--red:#F85149;--rdbg:rgba(248,81,73,.14);--blue:#58A6FF;--blbg:rgba(88,166,255,.14);--purple:#BC8CFF;--pubg:rgba(188,140,255,.14);--amber:#E3B341;--ambg:rgba(227,179,65,.14);--orange:#F0883E;--orbg:rgba(240,136,62,.14);--teal:#39D353;--tlbg:rgba(57,211,83,.12);--it:env(safe-area-inset-top,44px);--ib:env(safe-area-inset-bottom,34px);--il:env(safe-area-inset-left,0px);--ir:env(safe-area-inset-right,0px);--f:'DM Sans',-apple-system,sans-serif}
 .lt{--bg:#F6F8FA;--card:#fff;--card2:#F6F8FA;--card3:#EAECEF;--border:rgba(0,0,0,.1);--border2:rgba(0,0,0,.04);--text:#1F2328;--text2:#3D4149;--muted:#636C76;--dim:#A0A7B4;--gold:#9A6700;--gdbg:rgba(154,103,0,.1);--green:#1A7F37;--gnbg:rgba(26,127,55,.1);--red:#CF222E;--rdbg:rgba(207,34,46,.1);--blue:#0969DA;--blbg:rgba(9,105,218,.1);--purple:#8250DF;--pubg:rgba(130,80,223,.1);--amber:#9A6700;--ambg:rgba(154,103,0,.1);--orange:#BC4C00;--orbg:rgba(188,76,0,.1);--teal:#116329;--tlbg:rgba(17,99,41,.1)}
 *,*::before,*::after{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;-webkit-touch-callout:none}
-html{height:100%;height:-webkit-fill-available;-webkit-font-smoothing:antialiased}body{height:100%;height:-webkit-fill-available;-webkit-font-smoothing:antialiased;max-width:100%;overflow-x:hidden}
-body{font-family:var(--f);background:var(--bg);color:var(--text);overflow:hidden;position:fixed;width:100%;top:0;left:0;transition:background .25s,color .25s}
-#wrap{display:flex;flex-direction:column;height:100%;height:-webkit-fill-available;width:100%;position:fixed;top:0;left:0;right:0;bottom:0}
-#topbar{background:var(--card);border-bottom:1px solid var(--border);padding:calc(var(--it)+10px) calc(var(--ir)+16px) 12px calc(var(--il)+16px);display:flex;align-items:center;gap:10px;flex-shrink:0;z-index:100;min-height:calc(var(--it)+54px);position:relative}
-#scr{flex:1;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;overscroll-behavior-y:contain;-webkit-overflow-scrolling:touch}
+html{height:100%;height:-webkit-fill-available;}body{height:100%;height:-webkit-fill-available;-webkit-font-smoothing:antialiased;max-width:100%;overflow-x:hidden}
+body{font-family:var(--f);background:var(--bg);color:var(--text);overflow:hidden;position:fixed;width:100%;height:100%;top:0;left:0;right:0;bottom:0;-webkit-font-smoothing:antialiased;transition:background .25s,color .25s}
+#wrap{display:flex;flex-direction:column;position:fixed;top:0;left:0;right:0;bottom:0;width:100%;height:100%;overflow:hidden}
+#topbar{background:var(--card);border-bottom:1px solid var(--border);padding:calc(var(--it)+10px) calc(var(--ir)+16px) 12px calc(var(--il)+16px);display:flex;align-items:center;gap:10px;flex-shrink:0;-webkit-user-select:none;z-index:100;min-height:calc(var(--it)+54px);position:relative}
+#scr{flex:1;overflow-y:scroll;overflow-x:hidden;-webkit-overflow-scrolling:touch;overscroll-behavior-y:contain;min-height:0}
 #tabs{background:var(--card);border-top:1px solid var(--border);display:flex;height:calc(56px + var(--ib));padding-bottom:var(--ib);flex-shrink:0;z-index:100;position:relative}
 .tab{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;padding:8px 2px 4px;cursor:pointer;position:relative;-webkit-user-select:none}
 .tab:active{opacity:.6}.tab-i{font-size:21px;line-height:1}.tab-t{font-size:9.5px;color:var(--muted);font-weight:600}
@@ -32,7 +32,7 @@ body{font-family:var(--f);background:var(--bg);color:var(--text);overflow:hidden
 .pf{font-family:'Playfair Display',serif}
 .tb-back{background:none;border:none;color:var(--blue);font-size:16px;font-weight:600;font-family:var(--f);padding:6px 0;cursor:pointer;display:flex;align-items:center;gap:3px;flex-shrink:0;white-space:nowrap}
 .tb-back:active{opacity:.6}
-.tb-btn{width:44px;height:44px;border-radius:50%;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;-webkit-appearance:none;touch-action:manipulation}
+.tb-btn{width:44px;height:44px;border-radius:50%;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;-webkit-appearance:none;touch-action:manipulation;-webkit-tap-highlight-color:rgba(0,0,0,0);user-select:none}
 .tb-btn:active{transform:scale(.9)}.btn-add{background:var(--gold);color:#000;font-size:20px;font-weight:700;-webkit-appearance:none;touch-action:manipulation}
 .btn-th{background:var(--card2);border:1px solid var(--border);color:var(--text);-webkit-appearance:none;touch-action:manipulation}
 .card{background:var(--card);border-radius:14px;margin:0 14px 12px;border:1px solid var(--border);overflow:hidden}
@@ -62,7 +62,7 @@ body{font-family:var(--f);background:var(--bg);color:var(--text);overflow:hidden
 .b-it{background:var(--gnbg);color:var(--green)}.b-ni{background:var(--rdbg);color:var(--red)}
 .b-ap{background:var(--pubg);color:var(--purple)}.b-so{background:var(--gdbg);color:var(--gold)}
 .b-ht{background:var(--orbg);color:var(--orange)}.b-pl{background:var(--tlbg);color:var(--teal)}.b-nd{background:var(--card3);color:var(--dim)}
-.sw{position:relative;overflow:hidden}.sw-acts{position:absolute;right:0;top:0;bottom:0;display:flex;z-index:1}
+.sw{position:relative;overflow:hidden}.sw-acts{position:absolute;right:0;top:0;bottom:0;display:flex;z-index:0}
 .sa{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:0 13px;cursor:pointer;font-size:11px;font-weight:700;gap:4px;min-width:66px;-webkit-user-select:none}
 .sa span{font-size:21px}.sa-rd{background:#DA3633;color:#fff}.sa-bl{background:#1F6FEB;color:#fff}
 .sa-or{background:#E36209;color:#fff}.sa-gn{background:var(--green);color:#fff}
@@ -265,7 +265,7 @@ function rHome(){
     <div class="shdr"><div class="slbl">Upcoming Appraisals</div><button class="slnk" onclick="go('appt')">All →</button></div>
     ${cfA.length===0
       ?`<div style="padding:14px 16px;font-size:13px;color:var(--dim);font-style:italic;background:var(--card);border-radius:14px;margin:0 14px 14px;border:1px solid var(--border);text-align:center">No upcoming appraisals<br><button class="btn btn-gd btn-sm" style="margin-top:10px;padding:9px 18px;display:inline-flex" onclick="appraisalM()">+ Book Appraisal</button></div>`
-      :`<div class="card">${cfA.slice(0,3).map(a=>`<div class="row" style="cursor:pointer" onclick="reschedM('${a.id}')"><div class="av c6" style="width:38px;height:38px;border-radius:10px;font-size:16px;flex-shrink:0">📅</div><div style="flex:1;min-width:0"><div class="rt" style="font-size:13.5px">${a.a||''}</div><div style="font-size:12px;color:var(--muted)">${a.n||''} · ${(a.d||'').split('T')[0]}${a.time?' · '+a.time:''}</div></div><button class="ibt" onclick="event.stopPropagation();callM('${esc(a.p||'')}','${esc(a.n||'')}','${esc(a.a||'')}',null)">📞</button></div>`).join('')}</div>`}
+      :`<div class="card">${cfA.slice(0,3).map(a=>`<div class="row" style="cursor:pointer" onclick="reschedM('${a.id}')"><div class="av c6" style="width:38px;height:38px;border-radius:10px;font-size:16px;flex-shrink:0">📅</div><div style="flex:1;min-width:0"><div class="rt" style="font-size:13.5px">${a.a||''}</div><div style="font-size:12px;color:var(--muted)">${a.n||''} · ${(a.d||'').split('T')[0]}${a.time?' · '+a.time:''}</div></div><button class="ibt" onclick="event.stopPropagation();callM('${esc(a.p||'')}','${esc(a.n||'')}','${esc(a.a||'')}',null)" style="background:var(--gnbg);border-color:var(--green)">📞</button></div>`).join('')}</div>`}
     <div class="shdr" style="margin-top:4px"><div class="slbl">Pipeline</div></div>
     <div class="card" style="padding:14px 16px">
       ${Object.entries(CL).filter(([s])=>sc[s]).map(([s,l])=>`<div class="pr" onclick="goF('${s}','')"><div class="pr-l">${l}</div><div class="pr-b"><div class="pr-f" style="width:${Math.round((sc[s]||0)/tot*100)}%;background:${CR[s]}"></div></div><div class="pr-n" style="color:${CR[s]}">${sc[s]}</div></div>`).join('')}
@@ -333,7 +333,7 @@ function smRow(p,isA){
         </div>
       </div>
       <div style="display:flex;gap:6px;flex-shrink:0">
-        <button class="ibt" onclick="callM('${esc(p.p)}','${esc(p.n)}','${esc(p.a)}',${p.id})">📞</button>
+        <button class="ibt" style="background:var(--gnbg);border-color:var(--green)" onclick="callM('${esc(p.p)}','${esc(p.n)}','${esc(p.a)}',${p.id})">📞</button>
         <button class="ibt" onclick="smsM('${esc(p.p)}','${esc(p.n)}','${esc(p.a)}',${p.id})">💬</button>
       </div>
     </div>
@@ -429,7 +429,7 @@ function delH(id){_hot=gH().filter(x=>String(x.id)!==id);sH();toast('Removed');r
 
 /* APPOINTMENTS */
 function rAppt(){const all=gA(),ac=all.filter(a=>!a.archived),cf=ac.filter(a=>a.status==='CONFIRMED'),cx=ac.filter(a=>a.status!=='CONFIRMED'),ar=all.filter(a=>a.archived);$('scr').innerHTML=`<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;padding:14px"><div style="background:var(--gnbg);border:1px solid var(--green);border-radius:16px;padding:14px"><div style="font-size:10px;font-weight:700;color:var(--green);text-transform:uppercase;letter-spacing:1.5px;margin-bottom:5px">Confirmed</div><div class="pf" style="font-size:30px;color:var(--text)">${cf.length}</div></div><div style="background:var(--rdbg);border:1px solid var(--red);border-radius:16px;padding:14px"><div style="font-size:10px;font-weight:700;color:var(--red);text-transform:uppercase;letter-spacing:1.5px;margin-bottom:5px">Cancelled</div><div class="pf" style="font-size:30px;color:var(--text)">${cx.length}</div></div></div><div style="padding:0 14px 14px"><button class="btn btn-gd btn-fw" onclick="appraisalM()">+ New Appraisal Appointment</button></div><div class="sth">✅ Confirmed (${cf.length})</div>${cf.length===0?`<div style="padding:14px 16px;font-size:13px;color:var(--dim);font-style:italic;border-bottom:1px solid var(--border2)">No confirmed appointments</div>`:cf.map(a=>aRow(a,1)).join('')}${cx.length?`<div class="sth" style="margin-top:6px">Cancelled/Pending (${cx.length})</div>${cx.map(a=>aRow(a,.6)).join('')}`:''}${ar.length?`<div class="sth" style="margin-top:6px;opacity:.6">Archived (${ar.length})</div><div style="opacity:.45">${ar.map(a=>aRow(a,.45)).join('')}</div>`:''}<div style="height:16px"></div>`;setTimeout(swipes,80);}
-function aRow(a,op){const aid=String(a.id);return `<div class="sw" id="swa${aid}"><div class="sw-acts" id="saa${aid}"><div class="sa sa-pu" onclick="reschedM('${aid}')"><span>📅</span>Reschedule</div><div class="sa sa-gr" onclick="archAp('${aid}')"><span>${a.archived?'↩️':'📦'}</span>${a.archived?'Restore':'Archive'}</div><div class="sa sa-rd" onclick="delAp('${aid}')"><span>🗑️</span>Delete</div></div><div class="row" id="ar${aid}" style="opacity:${op}"><div class="row-in" style="cursor:pointer" onclick="reschedM('${aid}')"><div style="width:9px;height:9px;border-radius:50%;flex-shrink:0;margin-top:6px;${a.status==='CONFIRMED'?'background:var(--green);box-shadow:0 0 5px var(--green)':'background:var(--red)'}"></div><div style="flex:1;min-width:0;margin-left:10px"><div class="rt">${a.a||a.address||''}</div><div class="rs">${a.n||a.name||''}</div><div class="rm"><span class="bdg b-ap">${(a.d||a.date||'').split('T')[0]}${a.time?' · '+a.time:''}</span></div></div></div><div style="display:flex;gap:6px;flex-shrink:0"><button class="ibt" onclick="callM('${esc(a.p||a.phone||'')}','${esc(a.n||a.name||'')}','${esc(a.a||a.address||'')}',null)">📞</button><button class="ibt" onclick="reschedM('${aid}')">📅</button></div></div></div>`;}
+function aRow(a,op){const aid=String(a.id);return `<div class="sw" id="swa${aid}"><div class="sw-acts" id="saa${aid}"><div class="sa sa-pu" onclick="reschedM('${aid}')"><span>📅</span>Reschedule</div><div class="sa sa-gr" onclick="archAp('${aid}')"><span>${a.archived?'↩️':'📦'}</span>${a.archived?'Restore':'Archive'}</div><div class="sa sa-rd" onclick="delAp('${aid}')"><span>🗑️</span>Delete</div></div><div class="row" id="ar${aid}" style="opacity:${op}"><div class="row-in" style="cursor:pointer" onclick="reschedM('${aid}')"><div style="width:9px;height:9px;border-radius:50%;flex-shrink:0;margin-top:6px;${a.status==='CONFIRMED'?'background:var(--green);box-shadow:0 0 5px var(--green)':'background:var(--red)'}"></div><div style="flex:1;min-width:0;margin-left:10px"><div class="rt">${a.a||a.address||''}</div><div class="rs">${a.n||a.name||''}</div><div class="rm"><span class="bdg b-ap">${(a.d||a.date||'').split('T')[0]}${a.time?' · '+a.time:''}</span></div></div></div><div style="display:flex;gap:6px;flex-shrink:0"><button class="ibt" style="background:var(--gnbg);border-color:var(--green)" onclick="callM('${esc(a.p||a.phone||'')}','${esc(a.n||a.name||'')}','${esc(a.a||a.address||'')}',null)">📞</button><button class="ibt" onclick="reschedM('${aid}')">📅</button></div></div></div>`;}
 function archAp(id){const a=gA().find(x=>String(x.id)===id);if(a){a.archived=!a.archived;sA();toast(a.archived?'Archived':'Restored');rAppt();bdg();}}
 function delAp(id){if(!confirm('Delete this appointment?'))return;_appts=gA().filter(a=>String(a.id)!==id);sA();toast('Deleted');rAppt();bdg();}
 function reschedM(id){const a=gA().find(x=>String(x.id)===id);if(!a)return;const t=new Date().toISOString().split('T')[0];modal(`<div class="sht"><div class="sht-h"></div><div class="sht-hdr"><div><div class="sht-ttl">📅 Reschedule</div><div class="sht-sub">${a.a||a.address||''}</div></div><button class="sht-x" onclick="cls()">✕</button></div><div class="sht-bd"><div class="f2"><div class="fg"><div class="fl">Date</div><input class="fi" id="rd" type="date" value="${(a.d||a.date||t).split('T')[0]}"></div><div class="fg"><div class="fl">Time</div><input class="fi" id="rt2" type="time" value="${a.time||'10:00'}"></div></div><div class="fg"><div class="fl">Status</div><select class="fs" id="rs2"><option value="CONFIRMED"${a.status==='CONFIRMED'?' selected':''}>Confirmed</option><option value="CANCELLED"${a.status==='CANCELLED'?' selected':''}>Cancelled</option><option value="PENDING">Pending</option></select></div><div class="fg"><div class="fl">Notes</div><textarea class="fta" id="rn" style="min-height:70px">${a.notes||''}</textarea></div></div><div class="sht-ft"><button class="btn btn-gh" onclick="cls()">Cancel</button><button class="btn btn-gd" onclick="saveResch('${id}')">Save</button></div></div>`);}
@@ -515,19 +515,58 @@ function bdg(){const arch=gSA();const pp=gP().filter(p=>!p.archived),hl=gH().fil
 
 /* SWIPE */
 function swipes(){
-  document.querySelectorAll('.sw').forEach(wrap=>{
-    const row=wrap.querySelector('.row');const acts=wrap.querySelector('.sw-acts');
-    if(!row||!acts||row._sw)return;row._sw=true;
-    let sx=0,sy=0,cx=0,mv=false,act=false;
-    // Force layout so scrollWidth is correct
-    acts.style.transform='translateX(0)';
-    const W=Math.max(acts.offsetWidth,acts.scrollWidth,66*acts.children.length)||264;
-    acts.style.transform='translateX(100%)';
-    row.addEventListener('touchstart',e=>{sx=e.touches[0].clientX;sy=e.touches[0].clientY;cx=0;mv=false;act=true;},{passive:true});
-    row.addEventListener('touchmove',e=>{if(!act)return;const dx=e.touches[0].clientX-sx,dy=e.touches[0].clientY-sy;if(!mv&&Math.abs(dy)>Math.abs(dx)){act=false;return;}mv=true;e.preventDefault();cx=Math.max(-W,Math.min(0,dx-(row._open?W:0)));row.style.transform=`translateX(${cx}px)`;row.style.transition='none';},{passive:false});
-    row.addEventListener('touchend',()=>{if(!act)return;act=false;row.style.transition='transform .25s ease';if(cx<-W/3){row.style.transform=`translateX(-${W}px)`;row._open=true;}else{row.style.transform='translateX(0)';row._open=false;}});
+  document.querySelectorAll('.sw').forEach(function(wrap){
+    var row=wrap.querySelector('.row');
+    var acts=wrap.querySelector('.sw-acts');
+    if(!row||!acts||row._sw)return;
+    row._sw=true;
+    // Measure button width - no transforms, just natural layout
+    var W=acts.offsetWidth||0;
+    if(W<60){
+      // Force a layout pass
+      acts.style.visibility='visible';
+      W=acts.offsetWidth||0;
+    }
+    if(W<60) W=acts.children.length*70||210;
+    var sx=0,sy=0,curX=0,moved=false,active=false,isOpen=false;
+    row.addEventListener('touchstart',function(e){
+      sx=e.touches[0].clientX;sy=e.touches[0].clientY;
+      curX=isOpen?-W:0;moved=false;active=true;
+    },{passive:true});
+    row.addEventListener('touchmove',function(e){
+      if(!active)return;
+      var dx=e.touches[0].clientX-sx;
+      var dy=e.touches[0].clientY-sy;
+      if(!moved&&Math.abs(dy)>Math.abs(dx)+3){active=false;return;}
+      moved=true;
+      e.preventDefault();
+      var target=(isOpen?-W:0)+dx;
+      curX=Math.max(-W,Math.min(0,target));
+      row.style.transition='none';
+      row.style.transform='translateX('+curX+'px)';
+    },{passive:false});
+    row.addEventListener('touchend',function(){
+      if(!active)return;active=false;
+      row.style.transition='transform .22s ease';
+      if(curX<-W/3){
+        row.style.transform='translateX(-'+W+'px)';
+        isOpen=true;row._open=true;
+      }else{
+        row.style.transform='translateX(0)';
+        isOpen=false;row._open=false;
+      }
+    });
+    row._close=function(){
+      row.style.transition='transform .22s ease';
+      row.style.transform='translateX(0)';
+      isOpen=false;row._open=false;
+    };
   });
-  document.addEventListener('touchstart',e=>{document.querySelectorAll('.row').forEach(r=>{if(r._open&&!r.contains(e.target)){r.style.transition='transform .25s ease';r.style.transform='translateX(0)';r._open=false;}});},{passive:true});
+  document.addEventListener('touchstart',function(e){
+    document.querySelectorAll('.sw .row').forEach(function(r){
+      if(r._open&&!r.contains(e.target)&&r._close)r._close();
+    });
+  },{passive:true});
 }
 
 /* SEARCH */
