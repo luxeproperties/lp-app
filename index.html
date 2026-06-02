@@ -185,6 +185,43 @@ function fmtPh(ph){
   return '';
 }
 
+
+/* ── DATE HELPERS ── */
+function parseApptDate(raw){
+  if(!raw)return null;
+  try{
+    if(raw.includes('/')){
+      const p=raw.split('/');
+      if(p[2])return new Date(p[2]+'-'+p[1].padStart(2,'0')+'-'+p[0].padStart(2,'0')+'T00:00:00');
+    }
+    return new Date(raw.includes('T')?raw:raw+'T00:00:00');
+  }catch(e){return null;}
+}
+function fmtApptMonth(raw){
+  const d=parseApptDate(raw);
+  if(!d||isNaN(d))return '—';
+  return d.toLocaleDateString('en-AU',{month:'short'}).toUpperCase();
+}
+function fmtApptDay(raw){
+  const d=parseApptDate(raw);
+  if(!d||isNaN(d))return '?';
+  return d.getDate();
+}
+function fmtApptTime(raw,time){
+  const d=parseApptDate(raw);
+  const dayStr=d&&!isNaN(d)?d.toLocaleDateString('en-AU',{weekday:'short',day:'numeric',month:'short'}):'';
+  const timeStr=time||'';
+  if(dayStr&&timeStr)return dayStr+' · '+timeStr;
+  if(dayStr)return dayStr;
+  if(timeStr)return timeStr;
+  return raw||'';
+}
+function fmtApptFull(raw,time){
+  const d=parseApptDate(raw);
+  if(!d||isNaN(d))return raw||'';
+  return d.toLocaleDateString('en-AU',{weekday:'long',day:'numeric',month:'long',year:'numeric'})+(time?' at '+time:'');
+}
+
 /* DATA ADAPTER */
 const P=_P.map(p=>({id:p.i,a:p.a||'',s:p.s||'',n:p.n||'',p:fmtPh(p.p),e:p.e||'',no:p.x||'',status:p.t||'uncontacted',sb:p.b||'Melbourne',po:p.o||''}));
 const ST=_ST;
@@ -264,7 +301,15 @@ function rHome(){
   const tot=pp.length,con=pp.filter(p=>!['uncontacted','no_data'].includes(p.status)).length;
   const int=pp.filter(p=>['interested','appointment'].includes(p.status)).length;
   const hotCt=gH().filter(h=>!h.archived).length;
-  const cfA=gA().filter(a=>a.status==='CONFIRMED'&&!a.archived);
+  const today=new Date();today.setHours(0,0,0,0);
+  const cfA=gA().filter(a=>a.status==='CONFIRMED'&&!a.archived).filter(a=>{
+    const raw=a.d||a.date||'';if(!raw)return true;
+    const parts=raw.includes('/')?raw.split('/').reverse().join('-'):raw;
+    try{const dt=new Date(parts+'T00:00:00');return dt>=today;}catch(e){return true;}
+  }).sort((a,b)=>{
+    const pd=s=>{ const r=s||'';const p=r.includes('/')?r.split('/').reverse().join('-'):r;try{return new Date(p+'T'+(b.time||'09:00'));}catch(e){return new Date(0);} };
+    return pd(a.d||a.date||'') - pd(b.d||b.date||'');
+  });
   const wk=gI().filter(i=>Date.now()-new Date(i.date)<604800000).length;
   const sc={};pp.forEach(p=>{sc[p.status]=(sc[p.status]||0)+1;});
   const stc={};pp.forEach(p=>{stc[p.s]=(stc[p.s]||0)+1;});
@@ -290,7 +335,21 @@ function rHome(){
     <div class="shdr"><div class="slbl">Upcoming Appraisals</div><button class="slnk" onclick="go('appt')">All →</button></div>
     ${cfA.length===0
       ?`<div style="padding:14px 16px;font-size:13px;color:var(--dim);font-style:italic;background:var(--card);border-radius:14px;margin:0 14px 14px;border:1px solid var(--border);text-align:center">No upcoming appraisals<br><button class="btn btn-gd btn-sm" style="margin-top:10px;padding:9px 18px;display:inline-flex" onclick="appraisalM()">+ Book Appraisal</button></div>`
-      :`<div class="card">${cfA.slice(0,3).map(a=>`<div class="row" style="cursor:pointer" onclick="reschedM('${a.id}')"><div class="av c6" style="width:38px;height:38px;border-radius:10px;font-size:16px;flex-shrink:0">📅</div><div style="flex:1;min-width:0"><div class="rt" style="font-size:13.5px">${a.a||''}</div><div style="font-size:12px;color:var(--muted)">${a.n||''} · ${(a.d||'').split('T')[0]}${a.time?' · '+a.time:''}</div></div><button class="ibt" onclick="event.stopPropagation();callM('${esc(a.p||'')}','${esc(a.n||'')}','${esc(a.a||'')}',null)" style="background:var(--gnbg);border-color:var(--green)">📞</button></div>`).join('')}</div>`}
+      :`<div class="card">${cfA.slice(0,3).map(a=>`<div class="row" style="cursor:pointer;padding:12px 14px" onclick="reschedM('${a.id}')">
+  <div style="width:42px;height:42px;border-radius:12px;background:var(--gdbg);border:1px solid var(--gold);display:flex;flex-direction:column;align-items:center;justify-content:center;flex-shrink:0">
+    <div style="font-size:10px;font-weight:700;color:var(--gold);text-transform:uppercase;line-height:1">${fmtApptMonth(a.d||a.date||'')}</div>
+    <div style="font-size:18px;font-weight:700;color:var(--text);line-height:1">${fmtApptDay(a.d||a.date||'')}</div>
+  </div>
+  <div style="flex:1;min-width:0;margin-left:10px">
+    <div class="rt" style="font-size:13.5px">${a.a||''}</div>
+    <div style="font-size:12px;color:var(--muted);margin-top:2px">${a.n||''}</div>
+    <div style="font-size:12px;color:var(--gold);font-weight:600;margin-top:2px">${fmtApptTime(a.d||a.date||'',a.time||'')}</div>
+  </div>
+  <div style="display:flex;flex-direction:column;gap:6px;flex-shrink:0">
+    <button class="ibt" onclick="event.stopPropagation();callM('${esc(a.p||'')}','${esc(a.n||'')}','${esc(a.a||'')}',null)" style="background:var(--gnbg);border-color:var(--green)">📞</button>
+    <button class="ibt" onclick="event.stopPropagation();addToCalendar(JSON.parse(decodeURIComponent('${encodeURIComponent(JSON.stringify({a:a.a,n:a.n,d:a.d||a.date,time:a.time}))}')))" style="background:var(--blbg);border-color:var(--blue)">📆</button>
+  </div>
+</div>`).join('')}</div>`}
     <div class="shdr" style="margin-top:4px"><div class="slbl">Pipeline</div></div>
     <div class="card" style="padding:14px 16px">
       ${Object.entries(CL).filter(([s])=>sc[s]).map(([s,l])=>`<div class="pr" onclick="goF('${s}','')"><div class="pr-l">${l}</div><div class="pr-b"><div class="pr-f" style="width:${Math.round((sc[s]||0)/tot*100)}%;background:${CR[s]}"></div></div><div class="pr-n" style="color:${CR[s]}">${sc[s]}</div></div>`).join('')}
@@ -574,8 +633,14 @@ function archH(id){const h=gH().find(x=>String(x.id)===id);if(h){h.archived=!h.a
 function delH(id){_hot=gH().filter(x=>String(x.id)!==id);sH();toast('Removed');rHot();bdg();}
 
 /* APPOINTMENTS */
-function rAppt(){const all=gA(),ac=all.filter(a=>!a.archived),cf=ac.filter(a=>a.status==='CONFIRMED'),cx=ac.filter(a=>a.status!=='CONFIRMED'),ar=all.filter(a=>a.archived);$('scr').innerHTML=`<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;padding:14px"><div style="background:var(--gnbg);border:1px solid var(--green);border-radius:16px;padding:14px"><div style="font-size:10px;font-weight:700;color:var(--green);text-transform:uppercase;letter-spacing:1.5px;margin-bottom:5px">Confirmed</div><div class="pf" style="font-size:30px;color:var(--text)">${cf.length}</div></div><div style="background:var(--rdbg);border:1px solid var(--red);border-radius:16px;padding:14px"><div style="font-size:10px;font-weight:700;color:var(--red);text-transform:uppercase;letter-spacing:1.5px;margin-bottom:5px">Cancelled</div><div class="pf" style="font-size:30px;color:var(--text)">${cx.length}</div></div></div><div style="padding:0 14px 14px"><button class="btn btn-gd btn-fw" onclick="appraisalM()">+ New Appraisal Appointment</button></div><div class="sth">✅ Confirmed (${cf.length})</div>${cf.length===0?`<div style="padding:14px 16px;font-size:13px;color:var(--dim);font-style:italic;border-bottom:1px solid var(--border2)">No confirmed appointments</div>`:cf.map(a=>aRow(a,1)).join('')}${cx.length?`<div class="sth" style="margin-top:6px">Cancelled/Pending (${cx.length})</div>${cx.map(a=>aRow(a,.6)).join('')}`:''}${ar.length?`<div class="sth" style="margin-top:6px;opacity:.6">Archived (${ar.length})</div><div style="opacity:.45">${ar.map(a=>aRow(a,.45)).join('')}</div>`:''}<div style="height:16px"></div>`;setTimeout(swipes,80);}
-function aRow(a,op){const aid=String(a.id);return `<div class="sw" id="swa${aid}"><div class="sw-acts" id="saa${aid}"><div class="sa sa-pu" onclick="reschedM('${aid}')"><span>📅</span>Reschedule</div><div class="sa sa-gr" onclick="archAp('${aid}')"><span>${a.archived?'↩️':'📦'}</span>${a.archived?'Restore':'Archive'}</div><div class="sa sa-rd" onclick="delAp('${aid}')"><span>🗑️</span>Delete</div></div><div class="row" id="ar${aid}" style="opacity:${op}"><div class="row-in" style="cursor:pointer" onclick="reschedM('${aid}')"><div style="width:9px;height:9px;border-radius:50%;flex-shrink:0;margin-top:6px;${a.status==='CONFIRMED'?'background:var(--green);box-shadow:0 0 5px var(--green)':'background:var(--red)'}"></div><div style="flex:1;min-width:0;margin-left:10px"><div class="rt">${a.a||a.address||''}</div><div class="rs">${a.n||a.name||''}</div><div class="rm"><span class="bdg b-ap">${(a.d||a.date||'').split('T')[0]}${a.time?' · '+a.time:''}</span></div></div></div><div style="display:flex;gap:6px;flex-shrink:0"><button class="ibt" style="background:var(--gnbg);border-color:var(--green)" onclick="callM('${esc(a.p||a.phone||'')}','${esc(a.n||a.name||'')}','${esc(a.a||a.address||'')}',null)">📞</button><button class="ibt" onclick="reschedM('${aid}')">📅</button></div></div></div>`;}
+function rAppt(){const all=gA();const today2=new Date();today2.setHours(0,0,0,0);
+  const ac=all.filter(a=>!a.archived);
+  const cf=ac.filter(a=>a.status==='CONFIRMED').sort((a,b)=>{const pa=parseApptDate(a.d||a.date||''),pb=parseApptDate(b.d||b.date||'');return (pa||new Date(0))-(pb||new Date(0));});
+  const cx=ac.filter(a=>a.status!=='CONFIRMED');const ar=all.filter(a=>a.archived);$('scr').innerHTML=`<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;padding:14px"><div style="background:var(--gnbg);border:1px solid var(--green);border-radius:16px;padding:14px"><div style="font-size:10px;font-weight:700;color:var(--green);text-transform:uppercase;letter-spacing:1.5px;margin-bottom:5px">Confirmed</div><div class="pf" style="font-size:30px;color:var(--text)">${cf.length}</div></div><div style="background:var(--rdbg);border:1px solid var(--red);border-radius:16px;padding:14px"><div style="font-size:10px;font-weight:700;color:var(--red);text-transform:uppercase;letter-spacing:1.5px;margin-bottom:5px">Cancelled</div><div class="pf" style="font-size:30px;color:var(--text)">${cx.length}</div></div></div><div style="padding:0 14px 10px;display:flex;gap:10px">
+  <button class="btn btn-gd" style="flex:2" onclick="appraisalM()">+ New Appraisal</button>
+  <button class="btn btn-gh" style="flex:1;font-size:13px" onclick="showCalendarSync()">📆 Sync</button>
+</div><div class="sth">✅ Confirmed (${cf.length})</div>${cf.length===0?`<div style="padding:14px 16px;font-size:13px;color:var(--dim);font-style:italic;border-bottom:1px solid var(--border2)">No confirmed appointments</div>`:cf.map(a=>aRow(a,1)).join('')}${cx.length?`<div class="sth" style="margin-top:6px">Cancelled/Pending (${cx.length})</div>${cx.map(a=>aRow(a,.6)).join('')}`:''}${ar.length?`<div class="sth" style="margin-top:6px;opacity:.6">Archived (${ar.length})</div><div style="opacity:.45">${ar.map(a=>aRow(a,.45)).join('')}</div>`:''}<div style="height:16px"></div>`;setTimeout(swipes,80);}
+function aRow(a,op){const aid=String(a.id);return `<div class="sw" id="swa${aid}"><div class="sw-acts" id="saa${aid}"><div class="sa sa-pu" onclick="reschedM('${aid}')"><span>📅</span>Reschedule</div><div class="sa sa-gr" onclick="archAp('${aid}')"><span>${a.archived?'↩️':'📦'}</span>${a.archived?'Restore':'Archive'}</div><div class="sa sa-rd" onclick="delAp('${aid}')"><span>🗑️</span>Delete</div></div><div class="row" id="ar${aid}" style="opacity:${op}"><div class="row-in" style="cursor:pointer" onclick="reschedM('${aid}')"><div style="width:9px;height:9px;border-radius:50%;flex-shrink:0;margin-top:6px;${a.status==='CONFIRMED'?'background:var(--green);box-shadow:0 0 5px var(--green)':'background:var(--red)'}"></div><div style="flex:1;min-width:0;margin-left:10px"><div class="rt">${a.a||a.address||''}</div><div class="rs">${a.n||a.name||''}</div><div class="rm"><span class="bdg b-ap">${fmtApptFull(a.d||a.date||'',a.time||'')}</span></div></div></div><div style="display:flex;gap:6px;flex-shrink:0"><button class="ibt" style="background:var(--gnbg);border-color:var(--green)" onclick="callM('${esc(a.p||a.phone||'')}','${esc(a.n||a.name||'')}','${esc(a.a||a.address||'')}',null)">📞</button><button class="ibt" onclick="reschedM('${aid}')">📅</button></div></div></div>`;}
 function archAp(id){const a=gA().find(x=>String(x.id)===id);if(a){a.archived=!a.archived;sA();toast(a.archived?'Archived':'Restored');rAppt();bdg();}}
 function delAp(id){if(!confirm('Delete this appointment?'))return;_appts=gA().filter(a=>String(a.id)!==id);sA();toast('Deleted');rAppt();bdg();}
 function reschedM(id){const a=gA().find(x=>String(x.id)===id);if(!a)return;const t=new Date().toISOString().split('T')[0];modal(`<div class="sht"><div class="sht-h"></div><div class="sht-hdr"><div><div class="sht-ttl">📅 Reschedule</div><div class="sht-sub">${a.a||a.address||''}</div></div><button class="sht-x" onclick="cls()">✕</button></div><div class="sht-bd"><div class="f2"><div class="fg"><div class="fl">Date</div><input class="fi" id="rd" type="date" value="${(a.d||a.date||t).split('T')[0]}"></div><div class="fg"><div class="fl">Time</div><input class="fi" id="rt2" type="time" value="${a.time||'10:00'}"></div></div><div class="fg"><div class="fl">Status</div><select class="fs" id="rs2"><option value="CONFIRMED"${a.status==='CONFIRMED'?' selected':''}>Confirmed</option><option value="CANCELLED"${a.status==='CANCELLED'?' selected':''}>Cancelled</option><option value="PENDING">Pending</option></select></div><div class="fg"><div class="fl">Notes</div><textarea class="fta" id="rn" style="min-height:70px">${a.notes||''}</textarea></div></div><div class="sht-ft"><button class="btn btn-gh" onclick="cls()">Cancel</button><button class="btn btn-gd" onclick="saveResch('${id}')">Save</button></div></div>`);}
@@ -631,7 +696,36 @@ function saveProp(){const a=$('npa').value.trim();if(!a){toast('Enter an address
 function addContM(){modal(`<div class="sht"><div class="sht-h"></div><div class="sht-hdr"><div><div class="sht-ttl">👤 New Contact</div></div><button class="sht-x" onclick="cls()">✕</button></div><div class="sht-bd"><div class="fg"><div class="fl">Name</div><input class="fi" id="ncn" placeholder="Full name"></div><div class="fg"><div class="fl">Phone</div><input class="fi" id="ncp" type="tel" placeholder="04XX XXX XXX"></div><div class="fg"><div class="fl">Email</div><input class="fi" id="nce" type="email" placeholder="email@..."></div><div class="fg"><div class="fl">Address</div><input class="fi" id="nca" placeholder="Address (optional)"></div><div class="fg"><div class="fl">Notes</div><textarea class="fta" id="ncno" style="min-height:70px" placeholder="Notes…"></textarea></div></div><div class="sht-ft"><button class="btn btn-gh" onclick="cls()">Cancel</button><button class="btn btn-gd" onclick="saveCont()">Add</button></div></div>`);}
 function saveCont(){const n=$('ncn').value.trim();if(!n){toast('Enter a name');return;}const c={id:'c'+Date.now(),name:n,phone:$('ncp').value,email:$('nce').value,address:$('nca').value,notes:$('ncno').value};gC().push(c);sC();cls();toast('Contact added ✓');bdg();}
 function appraisalM(){const t=new Date().toISOString().split('T')[0];modal(`<div class="sht"><div class="sht-h"></div><div class="sht-hdr"><div><div class="sht-ttl">📅 New Appraisal</div></div><button class="sht-x" onclick="cls()">✕</button></div><div class="sht-bd"><div class="fg"><div class="fl">Property Address</div><input class="fi" id="axa" placeholder="e.g. 15 Hillview Rd, Greenvale"></div><div class="fg"><div class="fl">Owner Name</div><input class="fi" id="axn" placeholder="Full name"></div><div class="fg"><div class="fl">Phone</div><input class="fi" id="axp" type="tel" placeholder="04XX XXX XXX"></div><div class="f2"><div class="fg"><div class="fl">Date</div><input class="fi" id="axd" type="date" value="${t}"></div><div class="fg"><div class="fl">Time</div><input class="fi" id="axt" type="time" value="10:00"></div></div><div class="fg"><div class="fl">Status</div><select class="fs" id="axst"><option value="CONFIRMED">Confirmed</option><option value="PENDING">Pending</option></select></div><div class="fg"><div class="fl">Notes</div><textarea class="fta" id="axno" style="min-height:70px" placeholder="Vendor situation, notes…"></textarea></div></div><div class="sht-ft"><button class="btn btn-gh" onclick="cls()">Cancel</button><button class="btn btn-gd" onclick="saveAppr()">Book</button></div></div>`);}
-function saveAppr(){const a=$('axa').value.trim();if(!a){toast('Enter an address');return;}const ap={id:'ax'+Date.now(),a,n:$('axn').value,p:$('axp').value,d:$('axd').value,time:$('axt').value,status:$('axst').value,notes:$('axno').value||'',archived:false};gA().push(ap);sA();cls();toast('Appraisal booked ✓');bdg();if(S.pg==='appt')rAppt();else if(S.pg==='home')rHome();}
+function saveAppr(){const a=$('axa').value.trim();if(!a){toast('Enter an address');return;}const ap={id:'ax'+Date.now(),a,n:$('axn').value,p:$('axp').value,d:$('axd').value,time:$('axt').value,status:$('axst').value,notes:$('axno').value||'',archived:false};gA().push(ap);sA();cls();toast('Appraisal booked ✓');bdg();if(S.pg==='appt'){rAppt();}else if(S.pg==='home'){rHome();}else{S._homeNeedsRefresh=true;}}
+
+
+/* ── GOOGLE CALENDAR SYNC ── */
+function addToCalendar(appt){
+  // Build Google Calendar URL
+  const d=parseApptDate(appt.d||appt.date||'');
+  if(!d||isNaN(d)){toast('Invalid date');return;}
+  const time=appt.time||'10:00';
+  const [h,m]=(time+':00').split(':').map(Number);
+  const start=new Date(d);start.setHours(h,m,0,0);
+  const end=new Date(start);end.setHours(start.getHours()+1);
+  const fmt=dt=>dt.toISOString().replace(/[-:]/g,'').replace('.000','');
+  const title=encodeURIComponent('Appraisal - '+(appt.a||'Property'));
+  const details=encodeURIComponent('Property Appraisal\nOwner: '+(appt.n||'')+(appt.notes?'\nNotes: '+appt.notes:''));
+  const loc=encodeURIComponent(appt.a||'');
+  const url=`https://calendar.google.com/calendar/render?action=TEMPLATE&text=${title}&dates=${fmt(start)}/${fmt(end)}&details=${details}&location=${loc}`;
+  window.open(url,'_blank');
+  toast('Opening Google Calendar…');
+}
+function addAllToCalendar(){
+  const upcoming=gA().filter(a=>a.status==='CONFIRMED'&&!a.archived);
+  if(!upcoming.length){toast('No confirmed appointments');return;}
+  let delay=0;
+  upcoming.forEach(a=>{
+    setTimeout(()=>addToCalendar(a),delay);
+    delay+=1500;
+  });
+  toast('Opening '+upcoming.length+' appointments in Calendar…');
+}
 
 /* EDIT / DELETE */
 function editM(id){const p=gP().find(x=>x.id===id);if(!p)return;modal(`<div class="sht"><div class="sht-h"></div><div class="sht-hdr"><div><div class="sht-ttl">✏️ Edit Property</div><div class="sht-sub">${p.a||''}</div></div><button class="sht-x" onclick="cls()">✕</button></div><div class="sht-bd"><div class="fg"><div class="fl">Address</div><input class="fi" id="ea" value="${esc(p.a||'')}"></div><div class="fg"><div class="fl">Street Group</div><input class="fi" id="es" value="${esc(p.s||'')}"></div><div class="fg"><div class="fl">Owner Name</div><input class="fi" id="en" value="${esc(p.n||'')}"></div><div class="f2"><div class="fg"><div class="fl">Phone</div><input class="fi" id="ep" type="tel" value="${p.p||''}"></div><div class="fg"><div class="fl">Email</div><input class="fi" id="ee" type="email" value="${p.e||''}"></div></div><div class="fg"><div class="fl">Status</div><select class="fs" id="est">${sopts(p.status)}</select></div><div class="fg"><div class="fl">Notes</div><textarea class="fta" id="eno" style="min-height:80px">${p.no||''}</textarea></div></div><div class="sht-ft"><button class="btn btn-gh" onclick="cls()">Cancel</button><button class="btn btn-gd" onclick="saveEdit(${id})">Save</button></div></div>`);}
