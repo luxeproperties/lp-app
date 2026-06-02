@@ -21,10 +21,10 @@
 html{height:100%;height:-webkit-fill-available;}body{height:100%;height:-webkit-fill-available;-webkit-font-smoothing:antialiased;max-width:100%;overflow-x:hidden}
 body{font-family:var(--f);background:var(--bg);color:var(--text);overflow:hidden;position:fixed;width:100%;height:100%;top:0;left:0;right:0;bottom:0;-webkit-font-smoothing:antialiased;transition:background .25s,color .25s}
 #wrap{display:flex;flex-direction:column;position:fixed;top:0;left:0;right:0;bottom:0;width:100%;height:100%;overflow:hidden}
-#topbar{background:var(--card);border-bottom:1px solid var(--border);padding:calc(var(--it)+10px) calc(var(--ir)+16px) 12px calc(var(--il)+16px);display:flex;align-items:center;gap:10px;flex-shrink:0;-webkit-user-select:none;z-index:100;min-height:calc(var(--it)+54px);position:relative}
+#topbar{background:var(--card);border-bottom:1px solid var(--border);padding-top:calc(var(--it)+8px);padding-bottom:10px;padding-left:calc(var(--il)+14px);padding-right:calc(var(--ir)+14px);display:flex;align-items:center;gap:8px;flex-shrink:0;-webkit-user-select:none;z-index:100;position:relative}
 #scr{flex:1;overflow-y:scroll;overflow-x:hidden;-webkit-overflow-scrolling:touch;overscroll-behavior-y:contain;min-height:0}
 #tabs{background:var(--card);border-top:1px solid var(--border);display:flex;height:calc(56px + var(--ib));padding-bottom:var(--ib);flex-shrink:0;z-index:100;position:relative}
-.tab{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;padding:8px 2px 4px;cursor:pointer;position:relative;-webkit-user-select:none}
+.tab{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;padding:8px 2px 4px;cursor:pointer;position:relative;-webkit-user-select:none;touch-action:manipulation;-webkit-tap-highlight-color:transparent}
 .tab:active{opacity:.6}.tab-i{font-size:21px;line-height:1}.tab-t{font-size:9.5px;color:var(--muted);font-weight:600}
 .tab.on .tab-t{color:var(--gold)}.tab.on .tab-i{transform:scale(1.1)}
 .dot{position:absolute;top:5px;right:calc(50% - 17px);background:var(--red);color:#fff;font-size:9px;font-weight:700;min-width:16px;height:16px;padding:0 4px;border-radius:8px;display:flex;align-items:center;justify-content:center;border:2px solid var(--card)}
@@ -243,15 +243,15 @@ function rTB(){
   const th=`<button class="tb-btn btn-th" onclick="toggleTheme()">${S.theme==='dark'?'☀️':'🌙'}</button>`;
   const tb=$('topbar');if(!tb)return;
   if(p==='home'){
-    tb.innerHTML=`<div style="flex:1"><div class="pf" style="font-size:17px;font-weight:700;color:var(--gold)">Luxe Properties</div><div style="font-size:9px;color:var(--muted);letter-spacing:2px;text-transform:uppercase;font-weight:600;margin-top:1px">Melbourne</div></div>${th}<button class="tb-btn btn-add" onclick="addMenu()">+</button>`;
+    tb.innerHTML=`<div style="flex:1;min-width:0;overflow:hidden"><div class="pf" style="font-size:16px;font-weight:700;color:var(--gold);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Luxe Properties Melbourne</div><div style="font-size:9px;color:var(--muted);letter-spacing:1.5px;text-transform:uppercase;font-weight:600;margin-top:1px">Prospecting Platform</div></div><div style="display:flex;gap:6px;align-items:center;flex-shrink:0">${th}<button class="tb-btn btn-add" onclick="addMenu()">+</button></div>`;
   } else if(['pdet','cdet','streets','hot','log'].includes(p)){
     const lbl={pdet:'Property',cdet:'Contact',streets:'Streets',hot:'🔥 Hot List',log:'Call Log'}[p]||p;
-    tb.innerHTML=`<button class="tb-back" onclick="go('${S.prev}',true)">‹ Back</button><div style="flex:1;text-align:center;font-size:14px;font-weight:700;color:var(--text)">${lbl}</div>${th}`;
+    tb.innerHTML=`<button class="tb-back" onclick="go('${S.prev}',true)" style="padding:8px 4px 8px 0;font-size:15px;min-width:60px">‹ Back</button><div style="flex:1;text-align:center;font-size:14px;font-weight:700;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${lbl}</div><div style="min-width:60px;display:flex;justify-content:flex-end">${th}</div>`;
   } else if(p==='bulk'){
-    tb.innerHTML=`<button class="tb-back" onclick="go(S.prev||'props',true)">‹ Back</button><div style="flex:1;text-align:center;font-size:14px;font-weight:700;color:var(--text)">Bulk SMS</div>${th}`;
+    tb.innerHTML=`<button class="tb-back" onclick="go(S.prev||'props',true)" style="padding:8px 4px 8px 0;font-size:15px;min-width:60px">‹ Back</button><div style="flex:1;text-align:center;font-size:14px;font-weight:700;color:var(--text)">Bulk SMS</div><div style="min-width:60px;display:flex;justify-content:flex-end">${th}</div>`;
   } else {
     const lbl={smart:'Smart Calls',props:'Properties',contacts:'Contacts',appt:'Appointments'}[p]||p;
-    tb.innerHTML=`<div style="flex:1;font-size:17px;font-weight:700;color:var(--text)">${lbl}</div>${th}`;
+    tb.innerHTML=`<div style="flex:1;font-size:17px;font-weight:700;color:var(--text)">${lbl}</div><div style="flex-shrink:0">${th}</div>`;
   }
 }
 
@@ -549,7 +549,7 @@ function rContacts(){
   const ff=q?all.filter(c=>(c.name||'').toLowerCase().includes(q)||(c.phone||'').replace(/\s/g,'').includes(q.replace(/\s/g,''))||(c.email||'').toLowerCase().includes(q)||(c.address||'').toLowerCase().includes(q)):all;
   $('scr').innerHTML=`
     <div class="sb"><div class="sb-in"><span class="sb-ic">⌕</span><input id="cs" type="text" placeholder="Search name, phone, email…" value="${(S.cfq||'').replace(/"/g,'&quot;')}" autocomplete="off" autocorrect="off" spellcheck="false" autocapitalize="words" inputmode="search">${S.cfq?`<span class="sb-x" onclick="clrC()">✕</span>`:''}</div></div>
-    <div style="padding:8px 16px;font-size:12px;color:var(--muted);border-bottom:1px solid var(--border2);display:flex;justify-content:space-between"><span>${ff.length} contacts${q?' for "'+S.cfq+'"':''}</span><button class="slnk" onclick="addContM()">+ Add</button></div>
+    <div style="padding:8px 16px;font-size:12px;color:var(--muted);border-bottom:1px solid var(--border2);display:flex;justify-content:space-between"><span>${ff.length} contacts${q?' for "'+S.cfq+'"':''}</span><div style="display:flex;gap:12px;align-items:center"><button class="slnk" onclick="importContM()">⬆ Import</button><button class="slnk" onclick="exportCont()">⬇ Export</button><button class="slnk" onclick="addContM()">+ Add</button></div></div>
     <div id="cl">${ff.length===0?es(['👤',q?'No results':'No contacts',q?'Try a different search':'Add manually or contacts appear from your DB']):ff.slice(0,80).map(cRow).join('')}</div>
     <div style="height:16px"></div>`;
   srchBind('cs',()=>{
