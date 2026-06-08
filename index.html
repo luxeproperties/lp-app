@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,minimum-scale=1,viewport-fit=cover">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,minimum-scale=1,user-scalable=no,viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="Luxe Prospect">
@@ -196,7 +196,7 @@ body.dark .vt-by{background:rgba(236,72,153,.2);color:#F9A8D4;}
 .sb{background:var(--card);border-bottom:1px solid var(--border);padding:10px 14px;}
 .sb-in{background:var(--card2);border:1.5px solid var(--border);border-radius:12px;display:flex;align-items:center;gap:9px;padding:10px 14px;transition:border-color .15s;}
 .sb-in:focus-within{border-color:var(--teal);}
-.sb-in input{flex:1;background:none;border:none;outline:none;color:var(--text);font-family:var(--f);font-size:16px;min-width:0;-webkit-appearance:none;}
+.sb-in input{flex:1;background:none;border:none;outline:none;color:var(--text);font-family:var(--f);font-size:16px;min-width:0;-webkit-appearance:none;-webkit-tap-highlight-color:transparent;touch-action:manipulation;}
 .sb-in input::placeholder{color:var(--dim);}
 .sb-ic{color:var(--muted);font-size:17px;flex-shrink:0;}
 .sb-x{color:var(--muted);font-size:16px;flex-shrink:0;cursor:pointer;padding:2px 4px;touch-action:manipulation;}
@@ -225,7 +225,7 @@ body.dark .vt-by{background:rgba(236,72,153,.2);color:#F9A8D4;}
 /* FORMS */
 .fg{margin-bottom:14px;}
 .fl{display:block;font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.7px;margin-bottom:7px;}
-.fi,.fs,.fta{width:100%;background:var(--card2);border:1.5px solid var(--border);border-radius:12px;color:var(--text);font-family:var(--f);font-size:16px;padding:12px 14px;outline:none;-webkit-appearance:none;transition:border-color .15s;}
+.fi,.fs,.fta{width:100%;background:var(--card2);border:1.5px solid var(--border);border-radius:12px;color:var(--text);font-family:var(--f);font-size:16px;padding:12px 14px;outline:none;-webkit-appearance:none;transition:border-color .15s;-webkit-tap-highlight-color:transparent;}
 .fi:focus,.fs:focus,.fta:focus{border-color:var(--teal);}
 .fta{resize:none;line-height:1.5;}
 .frow{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
@@ -1211,31 +1211,78 @@ function addAllToCalendar(){var upcoming=gA().filter(function(a){return a.status
 function showCalendarSync(){var all=gA().filter(function(a){return a.status==='CONFIRMED'&&!a.archived;}).sort(function(a,b){return(parseApptDate(a.d||a.date||'')||new Date(0))-(parseApptDate(b.d||b.date||'')||new Date(0));});modal('<div class="sht"><div class="sht-h"></div><div class="sht-hdr"><div><div class="sht-ttl">📆 Calendar Sync</div><div class="sht-sub">Add to Google Calendar</div></div><button class="sht-x" onclick="cls()">✕</button></div><div class="sht-bd"><div style="background:var(--blbg);border:1px solid var(--border);border-radius:12px;padding:12px 14px;margin-bottom:14px;font-size:13px;color:var(--text2);line-height:1.6">Events will be added to <strong style="color:var(--gold)">alex@luxepropertiesmelbourne.com.au</strong></div><button class="btn btn-bl btn-fw" style="margin-bottom:14px" onclick="addAllToCalendar();cls()">📆 Add All '+all.length+' to Google Calendar</button>'+all.map(function(a){return'<div style="display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--border2);cursor:pointer" onclick="addToCalendar({a:\''+esc(a.a||'')+'\',n:\''+esc(a.n||'')+'\',d:\''+esc(a.d||a.date||'')+'\',time:\''+(a.time||'10:00')+'\'})"><div style="flex:1;min-width:0"><div style="font-size:13.5px;font-weight:600;color:var(--text)">'+(a.a||'')+'</div><div style="font-size:12px;color:var(--muted)">'+(a.n||'')+' · '+fmtApptFull(a.d||a.date||'',a.time||'')+'</div></div><div style="color:var(--teal);font-size:13px;font-weight:600;flex-shrink:0">+ Add</div></div>';}).join('')+(all.length===0?'<div style="color:var(--dim);font-size:13px;font-style:italic;text-align:center;padding:20px">No confirmed appointments</div>':'')+'</div><div class="sht-ft"><button class="btn btn-gh btn-fw" onclick="cls()">Close</button></div></div>');}
 
 /* ── STREETS ── */
-function rStreets(){var sc={},ss={};gP().filter(function(p){return!p.archived;}).forEach(function(p){sc[p.s]=(sc[p.s]||0)+1;if(!ss[p.s])ss[p.s]={};ss[p.s][p.status]=(ss[p.s][p.status]||0)+1;});var sr=Object.entries(sc).sort(function(a,b){return b[1]-a[1];});$('scr').innerHTML='<div class="sb"><div class="sb-in"><span class="sb-ic">⌕</span><input id="strs" type="text" placeholder="Search street…" autocomplete="off"></div></div><div style="padding:8px 16px;font-size:12px;color:var(--muted);border-bottom:1px solid var(--border2)">'+sr.length+' streets</div><div id="stl">'+sr.map(function(e){return stRow(e[0],e[1],ss[e[0]]||{});}).join('')+'</div><div style="height:80px"></div>';var i=$('strs');if(i)i.addEventListener('input',function(){var q=this.value.toLowerCase();var l=$('stl');if(l)l.innerHTML=sr.filter(function(e){return e[0].toLowerCase().includes(q);}).map(function(e){return stRow(e[0],e[1],ss[e[0]]||{});}).join('');});}
+function rStreets(){var sc={},ss={};gP().filter(function(p){return!p.archived;}).forEach(function(p){sc[p.s]=(sc[p.s]||0)+1;if(!ss[p.s])ss[p.s]={};ss[p.s][p.status]=(ss[p.s][p.status]||0)+1;});var sr=Object.entries(sc).sort(function(a,b){return b[1]-a[1];});$('scr').innerHTML='<div class="sb"><div class="sb-in"><span class="sb-ic">⌕</span><input id="strs" type="text" placeholder="Search street…" autocomplete="off"></div></div><div style="padding:8px 16px;font-size:12px;color:var(--muted);border-bottom:1px solid var(--border2)">'+sr.length+' streets</div><div id="stl">'+sr.map(function(e){return stRow(e[0],e[1],ss[e[0]]||{});}).join('')+'</div><div style="height:80px"></div>';srchBind('strs',function(){
+    var q=(document.getElementById('strs')||{}).value||'';
+    q=q.toLowerCase();
+    var l=$('stl');
+    if(l)l.innerHTML=sr.filter(function(e){return e[0].toLowerCase().includes(q);}).map(function(e){return stRow(e[0],e[1],ss[e[0]]||{});}).join('');
+  },function(){});}
 function stRow(s,c,st){var int=(st.interested||0)+(st.appointment||0);return '<div class="row" style="cursor:pointer" onclick="goF(\'\',\''+esc(s)+'\')"><div class="av" style="width:38px;height:38px;border-radius:10px;background:var(--gdbg);font-size:18px;flex-shrink:0">🏘️</div><div style="flex:1"><div class="rt">'+s+'</div><div class="rs" style="font-size:12px">'+(st.uncontacted||0)+' uncontacted · '+(st.voicemail||0)+' vm'+(int?' · <span style="color:var(--green)">'+int+' interested</span>':'')+'</div></div><div style="font-size:14px;font-weight:700;color:var(--muted);margin-right:6px">'+c+'</div><div style="color:var(--dim)">›</div></div>';}
 
 /* ── SEARCH ── */
 function rSearch(){
-  var q=(S.gq||'').toLowerCase().trim();
-  var results=[];
-  if(q.length>=2){
-    gP().filter(function(p){return!p.archived;}).forEach(function(p){if((p.a||'').toLowerCase().includes(q)||(p.n||'').toLowerCase().includes(q)||(p.p||'').includes(q)){results.push({type:'prop',p:p});}});
-    allC().slice(0,200).forEach(function(c){if(results.length<30&&((c.name||'').toLowerCase().includes(q)||(c.phone||'').includes(q)||(c.email||'').toLowerCase().includes(q))){results.push({type:'cont',c:c});}});
-  }
+  // Build stable layout - search bar stays, only results div updates
   $('scr').innerHTML=
-  '<div class="sb" style="border-bottom:1px solid var(--border)"><div class="sb-in"><span class="sb-ic">⌕</span><input id="gs" type="text" placeholder="Search everything — properties, contacts, streets…" value="'+(S.gq||'').replace(/"/g,'&quot;')+'" autocomplete="off" autocorrect="off" spellcheck="false" inputmode="search">'+(S.gq?'<span class="sb-x" onclick="S.gq=\'\';rSearch()">✕</span>':'')+'</div></div>'+
-  (q.length<2?'<div class="empty" style="padding-top:40px"><div class="empty-i">🔍</div><div class="empty-t">Search anything</div><div class="empty-s">Type at least 2 characters to search across all properties and contacts</div></div>':
-  results.length===0?'<div class="empty"><div class="empty-i">😔</div><div class="empty-t">No results for "'+S.gq+'"</div></div>':
-  '<div style="padding:8px 16px;font-size:12px;color:var(--muted);border-bottom:1px solid var(--border2)">'+results.length+' results</div>'+
-  results.map(function(r){
-    if(r.type==='prop'){var p=r.p;return '<div class="row" style="cursor:pointer" onclick="oProp('+p.id+')"><img class="av" src="'+avatarUrl(p.n,p.e,80)+'" onerror="this.style.display=\'none\';this.nextSibling.style.display=\'flex\'" loading="lazy" style="border-radius:12px"><div class="av '+avc(p.n)+'" style="display:none;border-radius:12px">'+ini(p.n)+'</div><div style="flex:1;min-width:0"><div class="rt">'+( p.a||'')+'</div><div class="rs">'+( p.n||'Unknown')+'</div><div class="rm"><span class="bdg '+bc(p.status)+'">'+(p.status||'').replace(/_/g,' ')+'</span><span style="font-size:10px;color:var(--muted)">Property</span></div></div></div>';}
-    if(r.type==='cont'){var c=r.c;return '<div class="row" style="cursor:pointer" onclick="'+(c.src==='prop'?'oProp('+c.pid+')':'oCont(\''+c.id+'\')')+'"><img class="av rnd" src="'+avatarUrl(c.name,c.email,80)+'" onerror="this.style.display=\'none\';this.nextSibling.style.display=\'flex\'" loading="lazy"><div class="av rnd '+avc(c.name)+'" style="display:none">'+ini(c.name)+'</div><div style="flex:1;min-width:0"><div class="rt">'+( c.name||'Unknown')+'</div><div class="rs">'+( c.phone||c.email||'—')+'</div><div class="rm"><span style="font-size:10px;color:var(--muted)">Contact</span></div></div></div>';}
-    return '';
-  }).join(''))+
+  '<div class="sb" style="border-bottom:1px solid var(--border)">'+
+    '<div class="sb-in">'+
+      '<span class="sb-ic">⌕</span>'+
+      '<input id="gs" type="text" placeholder="Search properties, contacts, addresses…" '+
+        'value="'+(S.gq||'').replace(/"/g,'&quot;')+'" '+
+        'autocomplete="off" autocorrect="off" spellcheck="false" autocapitalize="none" inputmode="search">'+
+      (S.gq?'<span class="sb-x" onclick="S.gq=\'\';rSearch()">✕</span>':'')+
+    '</div>'+
+  '</div>'+
+  '<div id="gs-results"></div>'+
   '<div style="height:80px"></div>';
-  srchBind('gs',function(){},function(v){S.gq=v;clearTimeout(window._gt);window._gt=setTimeout(rSearch,200);});
-}
 
+  // Populate initial results without re-rendering the input
+  var gsEl=$('gs');
+  if(gsEl){
+    // Auto-focus on search tab
+    setTimeout(function(){if(document.getElementById('gs'))document.getElementById('gs').focus();},100);
+  }
+
+  // Bind - only updates #gs-results, never touches the input
+  srchBind('gs',function(){
+    var q=(S.gq||'').toLowerCase().trim();
+    var results=[];
+    if(q.length>=2){
+      gP().filter(function(p){return!p.archived;}).forEach(function(p){if(results.length<50&&((p.a||'').toLowerCase().includes(q)||(p.n||'').toLowerCase().includes(q)||(p.p||'').includes(q))){results.push({type:'prop',p:p});}});
+      allC().slice(0,200).forEach(function(ct){if(results.length<60&&((ct.name||'').toLowerCase().includes(q)||(ct.phone||'').includes(q)||(ct.email||'').toLowerCase().includes(q))){results.push({type:'cont',c:ct});}});
+    }
+    var rl=$('gs-results');
+    if(!rl)return;
+    if(q.length<2){rl.innerHTML='<div class="empty" style="padding-top:40px"><div class="empty-i">🔍</div><div class="empty-t">Search anything</div><div class="empty-s">Type at least 2 characters to search across all '+gP().filter(function(p){return!p.archived;}).length.toLocaleString()+' properties</div></div>';return;}
+    if(results.length===0){rl.innerHTML='<div class="empty"><div class="empty-i">😔</div><div class="empty-t">No results for "'+S.gq+'"</div></div>';return;}
+    rl.innerHTML='<div style="padding:8px 16px;font-size:12px;color:var(--muted);border-bottom:1px solid var(--border2)">'+results.length+' results</div>'+
+    results.map(function(r){
+      if(r.type==='prop'){var p=r.p;
+        return '<div class="row" style="cursor:pointer" onclick="oProp('+p.id+')">'+
+          '<img class="av" src="'+avatarUrl(p.n,p.e,80)+'" onerror="this.style.display=\'none\';this.nextSibling.style.display=\'flex\'" loading="lazy" style="border-radius:12px">'+
+          '<div class="av '+avc(p.n)+'" style="display:none;border-radius:12px">'+ini(p.n)+'</div>'+
+          '<div style="flex:1;min-width:0"><div class="rt">'+(p.a||'')+'</div><div class="rs">'+(p.n||'Unknown')+'</div>'+
+          '<div class="rm"><span class="bdg '+bc(p.status)+'">'+(p.status||'').replace(/_/g,' ')+'</span><span style="font-size:10px;color:var(--muted)">Property</span></div></div></div>';
+      }
+      if(r.type==='cont'){var ct=r.c;
+        return '<div class="row" style="cursor:pointer" onclick="'+(ct.src==='prop'?'oProp('+ct.pid+')':"oCont('"+ct.id+"')")+'">'+
+          '<img class="av rnd" src="'+avatarUrl(ct.name,ct.email,80)+'" onerror="this.style.display=\'none\';this.nextSibling.style.display=\'flex\'" loading="lazy">'+
+          '<div class="av rnd '+avc(ct.name)+'" style="display:none">'+ini(ct.name)+'</div>'+
+          '<div style="flex:1;min-width:0"><div class="rt">'+(ct.name||'Unknown')+'</div><div class="rs">'+(ct.phone||ct.email||'—')+'</div>'+
+          '<div class="rm"><span style="font-size:10px;color:var(--muted)">Contact</span></div></div></div>';
+      }
+      return '';
+    }).join('');
+  },function(v){S.gq=v;});
+
+  // Show initial state
+  var rl=$('gs-results');
+  if(rl){
+    var q=(S.gq||'').toLowerCase().trim();
+    if(q.length<2){
+      rl.innerHTML='<div class="empty" style="padding-top:40px"><div class="empty-i">🔍</div><div class="empty-t">Search anything</div><div class="empty-s">Type at least 2 characters to search across all '+gP().filter(function(p){return!p.archived;}).length.toLocaleString()+' properties</div></div>';
+    }
+  }
+}
 /* ── CALL LOG ── */
 function rLog(){var sr=[...gI()].sort(function(a,b){return new Date(b.date)-new Date(a.date);});var TI={call:'📞',sms:'💬',email:'✉️',note:'📝'};$('scr').innerHTML=(sr.length===0?'<div class="empty"><div class="empty-i">📋</div><div class="empty-t">No interactions yet</div><div class="empty-s">Log calls, SMS or notes from any property page</div></div>':'<div style="padding:8px 16px;font-size:12px;color:var(--muted);border-bottom:1px solid var(--border2)">'+sr.length+' interactions</div>'+sr.map(function(i){return'<div class="row" style="cursor:pointer" onclick="'+(i.propertyId?'oProp('+i.propertyId+')':'')+'"><div class="tl-d" style="flex-shrink:0">'+(TI[i.type]||'📋')+'</div><div style="flex:1;min-width:0"><div class="rt" style="font-size:13.5px">'+((i.address||i.name)||'')+'</div><div class="rm"><span class="bdg '+bc(i.outcome)+'" style="font-size:10px">'+(i.outcome||i.type)+'</span><span class="rtime">'+ago(i.date)+' ago</span></div>'+(i.notes?'<div style="font-size:12px;color:var(--muted);font-style:italic;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin-top:3px">'+i.notes+'</div>':'')+'</div><button onclick="delLog(\''+i.id+'\')" style="background:none;border:none;color:var(--dim);font-size:18px;padding:4px;cursor:pointer;flex-shrink:0">🗑️</button></div>';}).join('')+'<div style="height:80px"></div>');}
 function delLog(id){_ix=gI().filter(function(i){return String(i.id)!==String(id);});sI();toast('Deleted');rLog();}
@@ -1332,7 +1379,34 @@ function swipes(){
 
 /* ── SEARCH ── */
 var _sT=null;
-function srchBind(inputId,onResults,onSet){var i=$(inputId);if(!i)return;var h=function(){var v=this.value;if(onSet)onSet(v);clearTimeout(_sT);_sT=setTimeout(onResults,160);};['input','keyup','keydown','change','compositionend'].forEach(function(ev){i.addEventListener(ev,h);});}
+function srchBind(inputId,onResults,onSet){
+  var inp=$(inputId);
+  if(!inp)return;
+  // iOS fix: ONLY use 'input' event - keydown/keyup/change cause keyboard dismiss
+  // 'compositionend' handles Asian/predictive text input
+  inp.addEventListener('input',function(){
+    var v=this.value;
+    if(onSet)onSet(v);
+    clearTimeout(_sT);
+    _sT=setTimeout(onResults,250);  // 250ms debounce - long enough for iOS
+  });
+  inp.addEventListener('compositionend',function(){
+    var v=this.value;
+    if(onSet)onSet(v);
+    clearTimeout(_sT);
+    _sT=setTimeout(onResults,100);
+  });
+  // Keep focus on iOS when results update
+  inp.addEventListener('blur',function(){
+    // If blur happens during a search debounce, refocus after short delay
+    if(_sT){
+      var self=this;
+      setTimeout(function(){
+        if(document.getElementById(inputId)===self)self.focus();
+      },50);
+    }
+  });
+}
 
 /* ── PRICEFINDER API ── */
 var PF_TOKEN=localStorage.getItem('pf_token')||'';
