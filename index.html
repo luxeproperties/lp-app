@@ -739,6 +739,30 @@ let _sT=null;
 function srchBind(id,onRes,onSet){const i=$(id);if(!i)return;const h=function(){const v=this.value;if(onSet)onSet(v);clearTimeout(_sT);_sT=setTimeout(onRes,160);};['input','keyup','keydown','change','compositionend'].forEach(ev=>i.addEventListener(ev,h));}
 
 /* INIT - defer to ensure DOM is ready */
+/* ── CSV DATA MERGE ── */
+function mergeCsvData(){
+  try{
+    if(localStorage.getItem('csv_v1'))return;
+    if(typeof _C==='undefined')return;
+    var existIds=new Set(P.map(function(p){return p.id;}));
+    var existAddrs=new Set(P.map(function(p){return (p.a||'').toUpperCase();}));
+    var custom=JSON.parse(localStorage.getItem('lpc')||'[]');
+    var custAddrs=new Set(custom.map(function(p){return (p.a||'').toUpperCase();}));
+    var added=0;
+    _C.forEach(function(p){
+      if(existIds.has(p.i))return;
+      var addr=(p.a||'').toUpperCase();
+      if(existAddrs.has(addr)||custAddrs.has(addr))return;
+      custom.push({id:p.i,a:p.a||'',s:p.s||'',n:p.n||'',p:fmtPh(p.p||''),e:p.e||'',no:p.x||'',status:p.t||'uncontacted',sb:p.b||'Melbourne',po:''});
+      added++;
+    });
+    localStorage.setItem('lpc',JSON.stringify(custom));
+    localStorage.setItem('csv_v1','1');
+    _props=null;
+    console.log('Merged '+added+' CSV contacts');
+  }catch(e){console.log('Merge error:',e);}
+}
+
 window.addEventListener('DOMContentLoaded',function(){
   mergeCsvData();
   rTB();
@@ -747,4 +771,4 @@ window.addEventListener('DOMContentLoaded',function(){
 
 </script>
 </body>
-</html<button class="slnk" onclick="importContM()" style="margin-right:4px">⬆ Import</button><button class="slnk" onclick="exportCont()" style="margin-right:8px">⬇ Export</button>>
+</html>
