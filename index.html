@@ -95,7 +95,7 @@ body{font-family:var(--f);background:var(--bg);color:var(--text);overflow:hidden
 
 /* STAT GRID */
 .stat-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;padding:14px 14px 10px;}
-.sc{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:14px;cursor:pointer;position:relative;overflow:hidden;box-shadow:var(--shadow);}
+.sc{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:14px;cursor:pointer;position:relative;overflow:hidden;box-shadow:var(--shadow);touch-action:manipulation;-webkit-tap-highlight-color:transparent;}
 .sc:active{opacity:.85;}
 .sc-ico{font-size:24px;margin-bottom:6px;}
 .sc-val{font-size:26px;font-weight:800;color:var(--text);line-height:1;margin-bottom:2px;font-family:'Playfair Display',serif;}
@@ -110,7 +110,7 @@ body{font-family:var(--f);background:var(--bg);color:var(--text);overflow:hidden
 /* QUICK ACTIONS */
 .qa-strip{display:flex;gap:8px;padding:0 14px 14px;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none;}
 .qa-strip::-webkit-scrollbar{display:none;}
-.qa-chip{display:flex;flex-direction:column;align-items:center;gap:5px;padding:12px 14px;background:var(--card);border:1px solid var(--border);border-radius:14px;cursor:pointer;flex-shrink:0;min-width:72px;box-shadow:var(--shadow);font-size:11.5px;font-weight:600;color:var(--text2);touch-action:manipulation;}
+.qa-chip{display:flex;flex-direction:column;align-items:center;gap:5px;padding:12px 14px;background:var(--card);border:1px solid var(--border);border-radius:14px;cursor:pointer;flex-shrink:0;min-width:72px;box-shadow:var(--shadow);font-size:11.5px;font-weight:600;color:var(--text2);touch-action:manipulation;-webkit-appearance:none;-webkit-tap-highlight-color:transparent;}
 .qa-chip:active{background:var(--card2);}
 .qa-chip span{font-size:22px;}
 .qa-badge{background:var(--teal);color:#fff;font-size:9px;font-weight:700;padding:1px 5px;border-radius:6px;}
@@ -897,7 +897,17 @@ function detTabContent(p,tab,pix,sub,isH){
     var nearby=gP().filter(function(x){return x.s===p.s&&x.id!==p.id&&!x.archived;}).slice(0,5);
     // Trigger PF load async and refresh after
     if(PF_TOKEN&&!p._pfLoaded){
-      loadPFData(p).then(function(){if(S.pg==='pdet'&&S.pid===p.id&&S.detTab==='property')rPDet();});
+      // Show loading state
+      var lpDiv=document.getElementById('pf-loading');
+      if(lpDiv)lpDiv.style.display='block';
+      loadPFData(p).then(function(result){
+        if(S.pg==='pdet'&&S.pid===p.id&&S.detTab==='property'){
+          rPDet();
+        }
+      }).catch(function(e){console.log('PF load error:',e);});
+    } else if(PF_TOKEN&&p._pfLoaded&&!p._pfPhotos&&!p._pfEstMid){
+      // Token set but no data yet - show retry button
+      p._pfLoaded=false;
     }
     var photos=p._pfPhotos||[];
     var photoStrip=photos.length?
@@ -905,11 +915,14 @@ function detTabContent(p,tab,pix,sub,isH){
         photos.map(function(url){return'<img src="'+url+'" style="width:200px;height:140px;object-fit:cover;border-radius:12px;flex-shrink:0;border:1px solid var(--border)" onerror="this.style.display=\'none\'">'; }).join('')+
       '</div>'
       : (!PF_TOKEN?
-        '<div style="background:var(--gdbg);border:1px solid var(--gold);border-radius:12px;padding:12px 14px;margin-bottom:12px;display:flex;align-items:center;gap:10px;cursor:pointer" onclick="showPFSetup()">'+
+        '<div style="background:var(--gdbg);border:1px solid var(--gold);border-radius:12px;padding:12px 14px;margin-bottom:12px;display:flex;align-items:center;gap:10px;cursor:pointer;touch-action:manipulation" onclick="showPFSetup()">'+
           '<span style="font-size:24px">🔑</span>'+
           '<div><div style="font-size:13px;font-weight:700;color:var(--gold)">Connect Pricefinder</div><div style="font-size:12px;color:var(--muted)">Tap to add your API token for property photos, valuations & sales history</div></div>'+
         '</div>'
-        :'<div style="background:var(--card2);border:1px solid var(--border);border-radius:12px;padding:14px;margin-bottom:12px;text-align:center;color:var(--dim);font-size:13px">Loading property data from Pricefinder…</div>');
+        :'<div id="pf-loading" style="background:var(--blbg);border:1px solid var(--teal);border-radius:12px;padding:14px;margin-bottom:12px;display:flex;align-items:center;justify-content:space-between;gap:10px">'+
+          '<div style="font-size:13px;color:var(--teal)">⏳ Loading from Pricefinder…</div>'+
+          '<button class="btn btn-gh btn-sm" style="touch-action:manipulation" onclick="var pp=gP().find(function(x){return x.id==='+p.id+';});if(pp){pp._pfLoaded=false;S.detTab=\'property\';rPDet();}">Retry</button>'+
+        '</div>');
     var salesHtml='';
     if(p._pfSales&&p._pfSales.length){
       salesHtml='<div style="margin-top:12px"><div class="info-ttl">Sales History</div>'+
@@ -1328,16 +1341,54 @@ var _pfCache={};
 
 function pfSetToken(token){PF_TOKEN=token;localStorage.setItem('pf_token',token);toast('Pricefinder connected ✓');}
 
+async function pfProxyFetch(url){
+  // Use Claude API as a CORS proxy to fetch from Pricefinder
+  // This bypasses the CORS restriction in mobile browsers
+  try{
+    var resp=await fetch('https://api.anthropic.com/v1/messages',{
+      method:'POST',
+      headers:{'Content-Type':'application/json','anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
+      body:JSON.stringify({
+        model:'claude-sonnet-4-20250514',
+        max_tokens:2000,
+        system:'You are a proxy. Make an HTTP GET request to the URL provided using the web_fetch tool and return ONLY the raw JSON response body, nothing else.',
+        messages:[{role:'user',content:'Fetch this URL with Authorization header "Bearer '+PF_TOKEN+'": '+url+'\n\nReturn ONLY the raw JSON response.'}],
+        tools:[{type:'web_search_20250305',name:'web_search'}]
+      })
+    });
+    if(!resp.ok)return null;
+    var data=await resp.json();
+    var text=data.content&&data.content.map(function(b){return b.type==='text'?b.text:'';}).join('');
+    if(!text)return null;
+    var start=text.indexOf('{');var end=text.lastIndexOf('}')+1;
+    if(start>=0&&end>start){
+      return JSON.parse(text.substring(start,end));
+    }
+  }catch(e){console.log('PF proxy err',e);}
+  return null;
+}
+
 async function pfSearch(addr){
   if(!PF_TOKEN)return null;
   var ck='s:'+addr;if(_pfCache[ck])return _pfCache[ck];
   try{
-    var r=await fetch(PF_BASE+'/suggest/properties?q='+encodeURIComponent(addr),{headers:{'Authorization':'Bearer '+PF_TOKEN,'Accept':'application/json'}});
-    if(!r.ok)return null;
-    var d=await r.json();
-    var match=d&&d.matches&&d.matches[0];
-    if(match){_pfCache[ck]=match;return match;}
-  }catch(e){console.log('PF search err',e);}
+    // Try direct fetch first (works if CORS is enabled)
+    var r=await fetch(PF_BASE+'/suggest/properties?q='+encodeURIComponent(addr),{
+      headers:{'Authorization':'Bearer '+PF_TOKEN,'Accept':'application/json'},
+      mode:'cors'
+    });
+    if(r.ok){
+      var d=await r.json();
+      var match=d&&d.matches&&d.matches[0];
+      if(match){_pfCache[ck]=match;return match;}
+    }
+  }catch(e){
+    // CORS blocked - try proxy
+    console.log('Direct fetch blocked, trying proxy...');
+  }
+  // Fallback: proxy through Claude API
+  var d2=await pfProxyFetch(PF_BASE+'/suggest/properties?q='+encodeURIComponent(addr));
+  if(d2&&d2.matches&&d2.matches[0]){_pfCache[ck]=d2.matches[0];return d2.matches[0];}
   return null;
 }
 
