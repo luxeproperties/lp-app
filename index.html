@@ -629,6 +629,7 @@ function rHome(){
     '<div class="qa-chip" onclick="go(\'todo\')"><span>✅</span>To Do'+(todoCt?'<span class="qa-badge">'+todoCt+'</span>':'')+'</div>'+
     '<div class="qa-chip" onclick="addPropM()"><span>🏠</span>Add Property</div>'+
     '<div class="qa-chip" onclick="addContM()"><span>👤</span>Add Contact</div>'+
+  '<div class="qa-chip" onclick="showPFSetup()"><span>🔑</span>Pricefinder</div>'+
   '</div>'+
   // UPCOMING APPRAISALS
   '<div class="section-hdr"><span class="section-lbl">Upcoming Appraisals</span><button class="section-link" onclick="go(\'appt\')">See all →</button></div>'+
@@ -894,16 +895,42 @@ function detTabContent(p,tab,pix,sub,isH){
   }
   if(tab==='property'){
     var nearby=gP().filter(function(x){return x.s===p.s&&x.id!==p.id&&!x.archived;}).slice(0,5);
+    // Trigger PF load async and refresh after
+    if(PF_TOKEN&&!p._pfLoaded){
+      loadPFData(p).then(function(){if(S.pg==='pdet'&&S.pid===p.id&&S.detTab==='property')rPDet();});
+    }
+    var photos=p._pfPhotos||[];
+    var photoStrip=photos.length?
+      '<div style="margin:0 0 12px;overflow-x:auto;display:flex;gap:8px;-webkit-overflow-scrolling:touch">'+
+        photos.map(function(url){return'<img src="'+url+'" style="width:200px;height:140px;object-fit:cover;border-radius:12px;flex-shrink:0;border:1px solid var(--border)" onerror="this.style.display=\'none\'">'; }).join('')+
+      '</div>'
+      : (!PF_TOKEN?
+        '<div style="background:var(--gdbg);border:1px solid var(--gold);border-radius:12px;padding:12px 14px;margin-bottom:12px;display:flex;align-items:center;gap:10px;cursor:pointer" onclick="showPFSetup()">'+
+          '<span style="font-size:24px">🔑</span>'+
+          '<div><div style="font-size:13px;font-weight:700;color:var(--gold)">Connect Pricefinder</div><div style="font-size:12px;color:var(--muted)">Tap to add your API token for property photos, valuations & sales history</div></div>'+
+        '</div>'
+        :'<div style="background:var(--card2);border:1px solid var(--border);border-radius:12px;padding:14px;margin-bottom:12px;text-align:center;color:var(--dim);font-size:13px">Loading property data from Pricefinder…</div>');
+    var salesHtml='';
+    if(p._pfSales&&p._pfSales.length){
+      salesHtml='<div style="margin-top:12px"><div class="info-ttl">Sales History</div>'+
+        p._pfSales.map(function(s){return'<div class="info-r"><div class="ir-l">'+(s.contractDate||s.settledDate||'').split('-').slice(0,2).join('/')+'</div><div class="ir-v" style="font-weight:700;color:var(--teal)">'+(s.price?'$'+s.price.toLocaleString():'—')+'</div></div>';}).join('')+
+      '</div>';
+    }
     return '<div class="card-block" style="padding:14px 16px">'+
+      photoStrip+
       '<div class="info-ttl">Property Details</div>'+
       '<div class="info-r"><div class="ir-l">Address</div><div class="ir-v">'+(p.a||'—')+'</div></div>'+
       '<div class="info-r"><div class="ir-l">Suburb</div><div class="ir-v">'+(p.sb||'Melbourne')+'</div></div>'+
-      '<div class="info-r"><div class="ir-l">Street</div><div class="ir-v">'+(p.s||'—')+'</div></div>'+
-      '<div class="info-r"><div class="ir-l">Est. Value</div><div class="ir-v">'+(p.estval||sub.med||'—')+'</div></div>'+
-      '<div class="info-r"><div class="ir-l">Beds/Bath</div><div class="ir-v">'+(p.beds?p.beds+'🛏 '+(p.baths||'')+'🚿 '+(p.cars||'')+'🚗':'—')+'</div></div>'+
+      '<div class="info-r"><div class="ir-l">Type</div><div class="ir-v">'+(p.propType||'Residential')+'</div></div>'+
+      '<div class="info-r"><div class="ir-l">Est. Value</div><div class="ir-v" style="font-weight:700;color:var(--teal)">'+(p.estval||p._pfEstMid?('$'+Math.round((p._pfEstMid||0)/1000)+'K'):sub.med||'—')+'</div></div>'+
+      (p._pfEstLow&&p._pfEstHigh?'<div class="info-r"><div class="ir-l">Range</div><div class="ir-v" style="color:var(--muted)">'+'$'+Math.round(p._pfEstLow/1000)+'K — $'+Math.round(p._pfEstHigh/1000)+'K</div></div>':'')+
+      '<div class="info-r"><div class="ir-l">Last Sold</div><div class="ir-v">'+(p._pfLastSale?p._pfLastSale+(p._pfLastSaleDate?' ('+p._pfLastSaleDate.slice(0,7)+')':''):p.lastSold||'—')+'</div></div>'+
+      '<div class="info-r"><div class="ir-l">Beds/Bath</div><div class="ir-v">'+(p.beds?p.beds+'🛏  '+(p.baths||'—')+'🚿  '+(p.cars||'—')+'🚗':'—')+'</div></div>'+
+      (p.landSqm?'<div class="info-r"><div class="ir-l">Land</div><div class="ir-v">'+p.landSqm+' m²</div></div>':'')+
       (p.no?'<div class="info-r"><div class="ir-l">Notes</div><div class="ir-v" style="color:var(--muted)">'+p.no+'</div></div>':'')+
+      salesHtml+
     '</div>'+
-    (nearby.length?'<div class="card-block" style="padding:14px 16px;margin-top:10px"><div class="info-ttl">Same Street ('+nearby.length+')</div>'+nearby.map(function(n){return'<div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--border2);cursor:pointer" onclick="oProp('+n.id+')"><img class="av sm" src="'+avatarUrl(n.n,n.e,60)+'" onerror="this.style.display=\'none\'" loading="lazy" style="border-radius:8px"><div style="flex:1;min-width:0"><div class="rt" style="font-size:13px">'+n.a+'</div><div class="rs" style="font-size:12px">'+(n.n||'Unknown')+'</div></div><span class="bdg '+bc(n.status)+'" style="font-size:10px">'+(n.status||'').replace('_',' ')+'</span></div>';}).join('')+'</div>':'');
+    (nearby.length?'<div class="card-block" style="padding:14px 16px;margin-top:10px"><div class="info-ttl">Same Street ('+nearby.length+')</div>'+nearby.map(function(n){return'<div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--border2);cursor:pointer" onclick="oProp('+n.id+')"><img class="av sm" src="'+avatarUrl(n.n,n.e,60)+'" onerror="this.style.display=\'none\';" loading="lazy" style="border-radius:8px"><div style="flex:1;min-width:0"><div class="rt" style="font-size:13px">'+n.a+'</div><div class="rs" style="font-size:12px">'+(n.n||'Unknown')+'</div></div><span class="bdg '+bc(n.status)+'" style="font-size:10px">'+(n.status||'').replace('_',' ')+'</span></div>';}).join('')+'</div>':'');
   }
   if(tab==='suburb'){
     var s=sub||SUBURB_DATA['Melbourne'];
@@ -1073,9 +1100,73 @@ function doImport(){var txt=(document.getElementById('imp-txt')||{}).value||'';i
 
 /* ── HOT LIST ── */
 function rHot(){var ac=gH().filter(function(h){return!h.archived;}),ar=gH().filter(function(h){return h.archived;});$('scr').innerHTML='<div class="sticky-hdr">🔥 Active — '+ac.length+'</div>'+(ac.length===0?'<div class="empty"><div class="empty-i">🔥</div><div class="empty-t">Hot list empty</div><div class="empty-s">Swipe left on any property and tap 🔥</div></div>':ac.map(function(h){return hRow(h,false);}).join(''))+(ar.length?'<div class="sticky-hdr" style="margin-top:6px;opacity:.6">Archived — '+ar.length+'</div><div style="opacity:.5">'+ar.map(function(h){return hRow(h,true);}).join('')+'</div>':'')+'<div style="height:80px"></div>';setTimeout(swipes,80);}
-function hRow(h,isA){var hid=String(h.id);return '<div class="sw" id="swh'+hid+'"><div class="sw-acts"><div class="sa sa-gr" onclick="archH(\''+hid+'\')"><span>'+(isA?'↩️':'📦')+'</span>'+(isA?'Restore':'Archive')+'</div><div class="sa sa-rd" onclick="delH(\''+hid+'\')"><span>🗑️</span>Del</div></div><div class="row" id="hr'+hid+'"><div class="row-in" style="cursor:default"><img class="av rnd" src="'+avatarUrl(h.n||h.name,'')+'" onerror="this.style.display=\'none\';this.nextSibling.style.display=\'flex\'" loading="lazy" alt="'+ini(h.n||h.name)+'"><div class="av rnd '+avc(h.n||h.name)+'" style="display:none">'+ini(h.n||h.name)+'</div><div style="flex:1;min-width:0"><div class="rt">'+(h.a||h.address||'')+'</div><div class="rs">'+(h.n||h.name||'—')+'</div><div class="rm"><span class="bdg b-ht">'+(h.category||'HOT STOCK')+'</span><span style="font-family:monospace;font-size:11.5px;color:var(--dim)">'+(h.p||h.phone||'No phone')+'</span></div></div></div><div style="display:flex;flex-direction:column;gap:6px;flex-shrink:0"><button class="ibt gn" onclick="callM(\''+esc(h.p||h.phone||'')+'\',\''+esc(h.n||h.name||'')+'\',\''+esc(h.a||h.address||'')+'\',null)">📞</button><button class="ibt" onclick="smsM(\''+esc(h.p||h.phone||'')+'\',\''+esc(h.n||h.name||'')+'\',\''+esc(h.a||h.address||'')+'\',null)">💬</button></div></div></div>';}
+function findPropByHot(h){
+  var addr=(h.a||h.address||'').toUpperCase();
+  return gP().find(function(p){return p.a.toUpperCase()===addr||p.id===h.id;});
+}
+function hRow(h,isA){
+  var hid=String(h.id);
+  var prop=findPropByHot(h);
+  var pid=prop?prop.id:null;
+  // Store hot item data for retrieval by event handlers
+  window._hotData=window._hotData||{};
+  window._hotData[hid]={p:h.p||h.phone||'',n:h.n||h.name||'',a:h.a||h.address||''};
+  var avUrl=avatarUrl(h.n||h.name,'');
+  var open=pid?'oProp('+pid+')':'editHotM('+JSON.stringify(hid)+')';
+  var html='';
+  html+='<div class="sw" id="swh'+hid+'">';
+  html+='<div class="sw-acts">';
+  html+='<div class="sa sa-bl" onclick="'+open+'"><span>✏️</span>Edit</div>';
+  html+='<div class="sa sa-gn" onclick="hotCall('+JSON.stringify(hid)+','+(pid||'null')+')"><span>📞</span>Call</div>';
+  html+='<div class="sa sa-gr" onclick="archH('+JSON.stringify(hid)+')"><span>'+(isA?'↩️':'📦')+'</span>'+(isA?'Restore':'Archive')+'</div>';
+  html+='<div class="sa sa-rd" onclick="delH('+JSON.stringify(hid)+')"><span>🗑️</span>Del</div>';
+  html+='</div>';
+  html+='<div class="row" id="hr'+hid+'">';
+  html+='<div class="row-in" style="cursor:pointer" onclick="'+open+'">';
+  html+='<img class="av rnd" src="'+avUrl+'" onerror="this.style.display=\'none\';this.nextSibling.style.display=\'flex\'" loading="lazy">';
+  html+='<div class="av rnd '+avc(h.n||h.name)+'" style="display:none">'+ini(h.n||h.name)+'</div>';
+  html+='<div style="flex:1;min-width:0">';
+  html+='<div class="rt">'+(h.a||h.address||'')+'</div>';
+  html+='<div class="rs">'+(h.n||h.name||'—')+'</div>';
+  html+='<div class="rm"><span class="bdg b-ht">'+(h.category||'HOT STOCK')+'</span><span style="font-family:monospace;font-size:11.5px;color:var(--dim)">'+(h.p||h.phone||'No phone')+'</span></div>';
+  html+='</div></div>';
+  html+='<div style="display:flex;flex-direction:column;gap:6px;flex-shrink:0">';
+  html+='<button class="ibt gn" onclick="hotCall('+JSON.stringify(hid)+','+(pid||'null')+')">📞</button>';
+  html+='<button class="ibt" onclick="hotSMS('+JSON.stringify(hid)+')">💬</button>';
+  html+='</div>';
+  html+='</div></div>';
+  return html;
+}
+function hotCall(hid,pid){
+  var d=window._hotData&&window._hotData[hid];
+  if(!d)return;
+  callM(d.p,d.n,d.a,pid);
+}
+function hotSMS(hid){
+  var d=window._hotData&&window._hotData[hid];
+  if(!d)return;
+  smsM(d.p,d.n,d.a,null);
+}
 function archH(id){var h=gH().find(function(x){return String(x.id)===id;});if(h){h.archived=!h.archived;sH();toast(h.archived?'Archived':'Restored');rHot();bdg();}}
 function delH(id){_hot=gH().filter(function(x){return String(x.id)!==id;});sH();toast('Removed');rHot();bdg();}
+function editHotM(hid){
+  var h=gH().find(function(x){return String(x.id)===hid;});if(!h)return;
+  modal('<div class="sht"><div class="sht-h"></div><div class="sht-hdr"><div><div class="sht-ttl">✏️ Edit Hot Property</div><div class="sht-sub">'+(h.a||h.address||'')+'</div></div><button class="sht-x" onclick="cls()">✕</button></div><div class="sht-bd">'+
+    '<div class="fg"><div class="fl">Address</div><input class="fi" id="eha" value="'+esc(h.a||h.address||'')+'"></div>'+
+    '<div class="fg"><div class="fl">Owner Name</div><input class="fi" id="ehn" value="'+esc(h.n||h.name||'')+'"></div>'+
+    '<div class="fg"><div class="fl">Phone</div><input class="fi" id="ehp" type="tel" value="'+(h.p||h.phone||'')+'"></div>'+
+    '<div class="fg"><div class="fl">Category</div><select class="fs" id="ehc"><option value="HOT STOCK"'+(( h.category||'HOT STOCK')==='HOT STOCK'?' selected':'')+'>Hot Stock</option><option value="PIPELINE"'+(h.category==='PIPELINE'?' selected':'')+'>Pipeline</option><option value="INVESTOR"'+(h.category==='INVESTOR'?' selected':'')+'>Investor</option></select></div>'+
+    '<div class="fg"><div class="fl">Notes</div><textarea class="fta" id="ehno" style="min-height:70px">'+(h.notes||'')+'</textarea></div>'+
+  '</div><div class="sht-ft"><button class="btn btn-gh" onclick="cls()">Cancel</button><button class="btn btn-gd" onclick="saveHotEdit(\''+hid+'\')" >Save</button></div></div>');
+}
+function saveHotEdit(hid){
+  var h=gH().find(function(x){return String(x.id)===hid;});if(!h)return;
+  h.a=$('eha').value;h.n=$('ehn').value;h.p=fmtPh($('ehp').value);h.category=$('ehc').value;h.notes=$('ehno').value;
+  // Also update the matching property record
+  var prop=gP().find(function(p){return p.a.toUpperCase()===h.a.toUpperCase();});
+  if(prop){prop.n=h.n;prop.p=h.p;prop.isHot=true;sP();}
+  sH();cls();toast('Hot property updated ✓');rHot();
+}
 
 /* ── APPOINTMENTS ── */
 function rAppt(){
@@ -1230,7 +1321,144 @@ function swipes(){
 var _sT=null;
 function srchBind(inputId,onResults,onSet){var i=$(inputId);if(!i)return;var h=function(){var v=this.value;if(onSet)onSet(v);clearTimeout(_sT);_sT=setTimeout(onResults,160);};['input','keyup','keydown','change','compositionend'].forEach(function(ev){i.addEventListener(ev,h);});}
 
-/* ── INIT ── */
+/* ── PRICEFINDER API ── */
+var PF_TOKEN=localStorage.getItem('pf_token')||'';
+var PF_BASE='https://api.pricefinder.com.au/v1';
+var _pfCache={};
+
+function pfSetToken(token){PF_TOKEN=token;localStorage.setItem('pf_token',token);toast('Pricefinder connected ✓');}
+
+async function pfSearch(addr){
+  if(!PF_TOKEN)return null;
+  var ck='s:'+addr;if(_pfCache[ck])return _pfCache[ck];
+  try{
+    var r=await fetch(PF_BASE+'/suggest/properties?q='+encodeURIComponent(addr),{headers:{'Authorization':'Bearer '+PF_TOKEN,'Accept':'application/json'}});
+    if(!r.ok)return null;
+    var d=await r.json();
+    var match=d&&d.matches&&d.matches[0];
+    if(match){_pfCache[ck]=match;return match;}
+  }catch(e){console.log('PF search err',e);}
+  return null;
+}
+
+async function pfGetProperty(pfId){
+  if(!PF_TOKEN||!pfId)return null;
+  var ck='p:'+pfId;if(_pfCache[ck])return _pfCache[ck];
+  try{
+    var r=await fetch(PF_BASE+'/properties/'+pfId,{headers:{'Authorization':'Bearer '+PF_TOKEN,'Accept':'application/json'}});
+    if(!r.ok)return null;
+    var d=await r.json();_pfCache[ck]=d;return d;
+  }catch(e){console.log('PF prop err',e);}
+  return null;
+}
+
+async function pfGetEstimate(pfId){
+  if(!PF_TOKEN||!pfId)return null;
+  var ck='e:'+pfId;if(_pfCache[ck])return _pfCache[ck];
+  try{
+    var r=await fetch(PF_BASE+'/properties/'+pfId+'/estimates',{headers:{'Authorization':'Bearer '+PF_TOKEN,'Accept':'application/json'}});
+    if(!r.ok)return null;
+    var d=await r.json();_pfCache[ck]=d;return d;
+  }catch(e){}
+  return null;
+}
+
+async function pfGetSales(pfId){
+  if(!PF_TOKEN||!pfId)return null;
+  var ck='sa:'+pfId;if(_pfCache[ck])return _pfCache[ck];
+  try{
+    var r=await fetch(PF_BASE+'/properties/'+pfId+'/sales',{headers:{'Authorization':'Bearer '+PF_TOKEN,'Accept':'application/json'}});
+    if(!r.ok)return null;
+    var d=await r.json();_pfCache[ck]=d;return d;
+  }catch(e){}
+  return null;
+}
+
+async function pfGetPhotos(pfId){
+  if(!PF_TOKEN||!pfId)return null;
+  var ck='ph:'+pfId;if(_pfCache[ck])return _pfCache[ck];
+  try{
+    var r=await fetch(PF_BASE+'/properties/'+pfId+'/photos',{headers:{'Authorization':'Bearer '+PF_TOKEN,'Accept':'application/json'}});
+    if(!r.ok)return null;
+    var d=await r.json();_pfCache[ck]=d;return d;
+  }catch(e){}
+  return null;
+}
+
+// Load all PF data for a property and cache on the object
+async function loadPFData(p){
+  if(!PF_TOKEN)return;
+  if(p._pfLoaded)return;
+  var match=await pfSearch(p.a);
+  if(!match||!match.property)return;
+  var pfId=match.property.id;
+  p._pfId=pfId;
+  // Load in parallel
+  var [det,est,sales,photos]=await Promise.all([
+    pfGetProperty(pfId),
+    pfGetEstimate(pfId),
+    pfGetSales(pfId),
+    pfGetPhotos(pfId)
+  ]);
+  if(det){
+    if(det.features){
+      p.beds=p.beds||det.features.bedrooms;
+      p.baths=p.baths||det.features.bathrooms;
+      p.cars=p.cars||det.features.carSpaces;
+      p.landSqm=det.features.landArea;
+      p.propType=det.features.propertyType;
+    }
+    if(det.address)p._pfAddr=det.address.display||p.a;
+  }
+  if(est&&est.estimates&&est.estimates.length){
+    var e=est.estimates[0];
+    p.estval=p.estval||('$'+Math.round((e.mid||e.high||0)/1000)+'K');
+    p._pfEstLow=e.low;p._pfEstMid=e.mid;p._pfEstHigh=e.high;
+  }
+  if(sales&&sales.sales){
+    p._pfSales=sales.sales.slice(0,5);
+    if(sales.sales.length){
+      var last=sales.sales[0];
+      p._pfLastSale=last.price?'$'+last.price.toLocaleString():null;
+      p._pfLastSaleDate=last.contractDate||last.settledDate||null;
+    }
+  }
+  if(photos&&photos.photos&&photos.photos.length){
+    p._pfPhotos=photos.photos.slice(0,5).map(function(ph){return ph.url||ph.href||ph;});
+  }
+  p._pfLoaded=true;
+  sP(); // Save enriched data
+  return p;
+}
+
+function savePFToken(){
+  var el=document.getElementById('pft');
+  if(el){pfSetToken(el.value);}
+  cls();
+}
+function showPFSetup(){
+  var html='<div class="sht"><div class="sht-h"></div>';
+  html+='<div class="sht-hdr"><div><div class="sht-ttl">🔑 Pricefinder API</div>';
+  html+='<div class="sht-sub">Connect for photos, valuations & sales history</div></div>';
+  html+='<button class="sht-x" onclick="cls()">✕</button></div>';
+  html+='<div class="sht-bd">';
+  html+='<div style="background:var(--blbg);border:1px solid var(--border);border-radius:12px;padding:14px;margin-bottom:16px;font-size:13px;color:var(--text2);line-height:1.6">';
+  html+='<strong>How to connect Pricefinder:</strong><br>';
+  html+='1. Log in to <strong>pricefinder.com.au</strong><br>';
+  html+='2. Go to My Account → API Access<br>';
+  html+='3. Copy your API/Bearer token and paste below<br><br>';
+  html+='Unlocks: property photos · estimated value · last sold price · beds/baths/land · 30yr sales history';
+  html+='</div>';
+  html+='<div class="fg"><div class="fl">Pricefinder API Token</div>';
+  html+='<input class="fi" id="pft" type="password" value="'+(PF_TOKEN||'')+'" placeholder="Paste Bearer token here" autocomplete="off"></div>';
+  if(PF_TOKEN){html+='<div style="background:var(--gnbg);border:1px solid var(--green);border-radius:11px;padding:10px 14px;font-size:13px;color:var(--green)">✅ Token saved — Pricefinder connected</div>';}
+  html+='</div>';
+  html+='<div class="sht-ft">';
+  html+='<button class="btn btn-gh" onclick="cls()">Cancel</button>';
+  html+='<button class="btn btn-gd" onclick="savePFToken()">Save & Connect</button>';
+  html+='</div></div>';
+  modal(html);
+}
 window.addEventListener('DOMContentLoaded',function(){
   mergeCsvData();
   rTB();
