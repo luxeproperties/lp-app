@@ -531,7 +531,7 @@ function mergeCsvData(){
 /* ── STATE ── */
 const S={pg:'home',prev:'home',pid:null,cid:null,tid:null,fq:'',fst:'',fstr:'',cfq:'',gq:'',pgSz:40,
   theme:localStorage.getItem('th')||'light',
-  bkSel:new Set(),bkStr:'',smSel:new Set(),propTab:'notes',detTab:'notes'};
+  bkSel:new Set(),bkStr:'',smSel:new Set(),propTab:'notes',detTab:'property'};
 var _props=null,_ix=null,_appts=null,_hot=null,_contacts=null,_todos=null;
 
 /* ── DATA ── */
@@ -633,7 +633,7 @@ function rTB(){
   }
 }
 
-function oProp(id){S.pid=id;S.detTab='notes';go('pdet');}
+function oProp(id){S.pid=id;S.detTab='property';go('pdet');}
 function oCont(id){S.cid=id;go('cdet');}
 
 /* ── HOME ── */
@@ -929,7 +929,7 @@ function rPDet(){
   '<div class="str"><span class="stl">Status</span><select onchange="updSt('+p.id+',this.value)">'+sopts(p.status)+'</select><span style="color:var(--muted)">›</span></div>'+
   // TABS
   '<div class="det-tabs">'+
-    ['notes','property','suburb','vendor'].map(function(t){return'<div class="det-tab'+(tab===t?' on':'')+'" onclick="S.detTab=\''+t+'\';rPDet()">'+t.charAt(0).toUpperCase()+t.slice(1)+'</div>';}).join('')+
+    ['property','suburb','vendor','notes'].map(function(t){return'<div class="det-tab'+(tab===t?' on':'')+'" onclick="S.detTab=\''+t+'\';rPDet()">'+t.charAt(0).toUpperCase()+t.slice(1)+'</div>';}).join('')+
   '</div>'+
   // TAB CONTENT
   detTabContent(p,tab,pix,sub,isH)+
