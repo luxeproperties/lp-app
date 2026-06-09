@@ -1212,7 +1212,117 @@ function rAppt(){
   '<div style="height:80px"></div>';
   setTimeout(swipes,80);
 }
-function aRow(a,op){var aid=String(a.id);return '<div class="sw" id="swa'+aid+'"><div class="sw-acts"><div class="sa sa-pu" onclick="reschedM(\''+aid+'\')"><span>📅</span>Reschedule</div><div class="sa sa-gr" onclick="archAp(\''+aid+'\')"><span>'+(a.archived?'↩️':'📦')+'</span>'+(a.archived?'Restore':'Archive')+'</div><div class="sa sa-rd" onclick="delAp(\''+aid+'\')"><span>🗑️</span>Delete</div></div><div class="row" id="ar'+aid+'" style="opacity:'+op+'"><div class="row-in" style="cursor:pointer" onclick="reschedM(\''+aid+'\')"><div style="width:9px;height:9px;border-radius:50%;flex-shrink:0;margin-top:6px;'+(a.status==='CONFIRMED'?'background:var(--green);box-shadow:0 0 5px var(--green)':'background:var(--red)')+'"></div><div style="flex:1;min-width:0;margin-left:10px"><div class="rt">'+(a.a||a.address||'')+'</div><div class="rs">'+(a.n||a.name||'')+'</div><div class="rm"><span class="bdg b-ap">'+fmtApptFull(a.d||a.date||'',a.time||'')+'</span></div></div></div><div style="display:flex;gap:6px;flex-shrink:0"><button class="ibt gn" onclick="callM(\''+esc(a.p||a.phone||'')+'\',\''+esc(a.n||a.name||'')+'\',\''+esc(a.a||a.address||'')+'\',null)">📞</button><button class="ibt" onclick="reschedM(\''+aid+'\')">📅</button></div></div></div>';}
+function apptSMS(aid){
+  var a=gA().find(function(x){return String(x.id)===aid;});
+  if(!a)return;
+  var ph=a.p||a.phone||'';
+  var nm=a.n||a.name||'';
+  var addr=a.a||a.address||'';
+  if(!ph){toast('No phone number on this appraisal');return;}
+  // Pre-fill with appraisal confirmation template
+  var apptDate=fmtApptFull(a.d||a.date||'',a.time||'');
+  var msg='Hi '+(nm.split(' ')[0]||'there')+', this is Alex from Luxe Properties Melbourne confirming your property appraisal at '+addr+' on '+apptDate+'. Please let me know if you need to reschedule. Looking forward to meeting you! — Alex 📱';
+  window._apptSMSMsg=msg;
+  window._apptSMSPh=ph;
+  window._apptSMSNm=nm;
+  window._apptSMSAddr=addr;
+  showApptSMS(aid);
+}
+function showApptSMS(aid){
+  var a=gA().find(function(x){return String(x.id)===aid;});
+  if(!a)return;
+  var ph=a.p||a.phone||'';
+  var nm=a.n||a.name||'';
+  var addr=a.a||a.address||'';
+  var fn=nm.split(' ')[0]||'there';
+  var apptDate=fmtApptFull(a.d||a.date||'',a.time||'');
+  var templates=[
+    {n:'Confirmation',t:'Hi '+fn+', Alex from Luxe Properties here. Just confirming your property appraisal at '+addr+' on '+apptDate+'. See you then! — Alex'},
+    {n:'Reminder',t:'Hi '+fn+', a friendly reminder your appraisal at '+addr+' is coming up on '+apptDate+'. If you need to reschedule please let me know. — Alex'},
+    {n:'Preparation Tips',t:'Hi '+fn+', Alex here. Your appraisal at '+addr+' is on '+apptDate+'. To help maximise your result, I suggest light tidying, turning on lights, and opening blinds. Happy to answer any questions beforehand! — Alex'},
+    {n:'Post Appraisal Follow-up',t:'Hi '+fn+', Alex Doguluer from Luxe Properties. Thank you for having me at '+addr+' today. I will prepare your market appraisal and be in touch shortly. — Alex 0' },
+    {n:'Custom',t:'Hi '+fn+', Alex from Luxe Properties here. '}
+  ];
+  var html='<div class="sht"><div class="sht-h"></div>';
+  html+='<div class="sht-hdr"><div><div class="sht-ttl">💬 SMS to Vendor</div>';
+  html+='<div class="sht-sub">'+(nm||'Owner')+' · '+(ph||'No phone')+'</div></div>';
+  html+='<button class="sht-x" onclick="cls()">✕</button></div>';
+  html+='<div class="sht-bd">';
+  if(!ph){
+    html+='<div style="background:var(--rdbg);border:1px solid var(--red);border-radius:12px;padding:12px 14px;margin-bottom:14px;font-size:13px;color:var(--red)">⚠️ No phone number on this appraisal. Add a phone number first.</div>';
+  }
+  html+='<div class="fg"><div class="fl">Template</div>';
+  window._apptTemplates=templates;
+  templates.forEach(function(t,i){
+    html+='<div class="tc'+(i===0?' on':'')+'" id="ast'+i+'" onclick="apptPickTIdx('+i+')" style="touch-action:manipulation"><div class="tr">'+(i===0?'<span style="color:#000;font-size:10px;font-weight:900">✓</span>':'')+'</div><div style="flex:1;min-width:0"><div class="tc-n">'+t.n+'</div><div class="tc-p">'+t.t.substring(0,65)+'…</div></div></div>';
+  });
+  html+='</div>';
+  html+='<div class="fg"><div class="fl">Message <span id="aslen" style="font-weight:400;text-transform:none;letter-spacing:0;color:var(--dim);font-size:11px"></span></div>';
+  html+='<textarea class="fta" id="asms" style="min-height:120px" oninput="var l=document.getElementById(\'aslen\');if(l)l.textContent=this.value.length+\'chars\'">'+templates[0].t+'</textarea></div>';
+  html+='</div>';
+  html+='<div class="sht-ft">';
+  html+='<button class="btn btn-gh" onclick="cls()">Cancel</button>';
+  if(ph){
+    html+='<a class="btn btn-gd" id="asmsl" href="sms:'+ph+'?body='+encodeURIComponent(templates[0].t)+'" onclick="logApptSMS(\''+aid+'\')" style="text-decoration:none;touch-action:manipulation">Open Messages →</a>';
+  } else {
+    html+='<button class="btn btn-gd" disabled style="opacity:.35">No phone</button>';
+  }
+  html+='</div></div>';
+  modal(html);
+  document.getElementById('aslen').textContent=templates[0].t.length+' chars';
+}
+function apptPickTIdx(i){
+  var templates=window._apptTemplates||[];
+  document.querySelectorAll('.tc').forEach(function(e,j){
+    e.classList.toggle('on',j===i);
+    var tr=e.querySelector('.tr');
+    if(tr)tr.innerHTML=j===i?'<span style="color:#000;font-size:10px;font-weight:900">✓</span>':'';
+  });
+  var ta=document.getElementById('asms');
+  if(ta&&templates[i]){ta.value=templates[i].t;ta.dispatchEvent(new Event('input'));}
+  var lnk=document.getElementById('asmsl');
+  if(lnk&&window._apptSMSPh)lnk.href='sms:'+window._apptSMSPh+'?body='+encodeURIComponent(templates[i]?templates[i].t:'');
+}
+function logApptSMS(aid){
+  var ta=document.getElementById('asms');
+  var msg=ta?ta.value:'';
+  var a=gA().find(function(x){return String(x.id)===aid;});
+  if(a){
+    gI().push({id:Date.now(),type:'sms',address:a.a||a.address||'',name:a.n||a.name||'',phone:a.p||a.phone||'',outcome:'sent',notes:msg.substring(0,120),date:new Date().toISOString()});
+    sI();
+  }
+  cls();
+  toast('SMS opened in Messages');
+}
+function aRow(a,op){
+  var aid=String(a.id);
+  var ph=a.p||a.phone||'';
+  var nm=a.n||a.name||'';
+  var addr=a.a||a.address||'';
+  return '<div class="sw" id="swa'+aid+'">'+
+    '<div class="sw-acts">'+
+      '<div class="sa sa-bl" onclick="showApptSMS(''+aid+'')"><span>💬</span>SMS</div>'+
+      '<div class="sa sa-pu" onclick="reschedM(''+aid+'')"><span>📅</span>Reschedule</div>'+
+      '<div class="sa sa-gr" onclick="archAp(''+aid+'')"><span>'+(a.archived?'↩️':'📦')+'</span>'+(a.archived?'Restore':'Archive')+'</div>'+
+      '<div class="sa sa-rd" onclick="delAp(''+aid+'')"><span>🗑️</span>Delete</div>'+
+    '</div>'+
+    '<div class="row" id="ar'+aid+'" style="opacity:'+op+'">'+
+      '<div class="row-in" style="cursor:pointer" onclick="reschedM(''+aid+'')">'+
+        '<div style="width:9px;height:9px;border-radius:50%;flex-shrink:0;margin-top:6px;'+(a.status==='CONFIRMED'?'background:var(--green);box-shadow:0 0 5px var(--green)':'background:var(--red)')+'"></div>'+
+        '<div style="flex:1;min-width:0;margin-left:10px">'+
+          '<div class="rt">'+(addr||'Unknown address')+'</div>'+
+          '<div class="rs">'+(nm||'Unknown owner')+(ph?' · <span style="font-family:monospace;font-size:11.5px;color:var(--dim)">'+ph+'</span>':'')+'</div>'+
+          '<div class="rm"><span class="bdg b-ap">'+fmtApptFull(a.d||a.date||'',a.time||'')+'</span></div>'+
+        '</div>'+
+      '</div>'+
+      '<div style="display:flex;gap:6px;flex-shrink:0">'+
+        (ph?'<a href="tel:'+ph+'" class="ibt gn" style="text-decoration:none;display:flex;align-items:center;justify-content:center;touch-action:manipulation">📞</a>':'<button class="ibt" style="opacity:.3" disabled>📞</button>')+
+        '<button class="ibt" style="touch-action:manipulation" onclick="showApptSMS(''+aid+'')">💬</button>'+
+        '<button class="ibt" style="touch-action:manipulation" onclick="reschedM(''+aid+'')">📅</button>'+
+      '</div>'+
+    '</div>'+
+  '</div>';
+}
 function archAp(id){var a=gA().find(function(x){return String(x.id)===id;});if(a){a.archived=!a.archived;sA();toast(a.archived?'Archived':'Restored');rAppt();bdg();}}
 function delAp(id){if(!confirm('Delete this appointment?'))return;_appts=gA().filter(function(a){return String(a.id)!==id;});sA();toast('Deleted');rAppt();bdg();}
 function reschedM(id){var a=gA().find(function(x){return String(x.id)===id;});if(!a)return;var t=new Date().toISOString().split('T')[0];modal('<div class="sht"><div class="sht-h"></div><div class="sht-hdr"><div><div class="sht-ttl">📅 Reschedule</div><div class="sht-sub">'+(a.a||a.address||'')+'</div></div><button class="sht-x" onclick="cls()">✕</button></div><div class="sht-bd"><div class="frow"><div class="fg"><div class="fl">Date</div><input class="fi" id="rd" type="date" value="'+(a.d||a.date||t).split('T')[0]+'"></div><div class="fg"><div class="fl">Time</div><input class="fi" id="rt2" type="time" value="'+(a.time||'10:00')+'"></div></div><div class="fg"><div class="fl">Status</div><select class="fs" id="rs2"><option value="CONFIRMED"'+(a.status==='CONFIRMED'?' selected':'')+'>Confirmed</option><option value="CANCELLED"'+(a.status==='CANCELLED'?' selected':'')+'>Cancelled</option><option value="PENDING">Pending</option></select></div><div class="fg"><div class="fl">Notes</div><textarea class="fta" id="rn" style="min-height:70px">'+(a.notes||'')+'</textarea></div></div><div class="sht-ft"><button class="btn btn-gh" onclick="cls()">Cancel</button><button class="btn btn-gd" onclick="saveResch(\''+id+'\')">Save</button></div></div>');}
@@ -1571,7 +1681,79 @@ var PF_TOKEN=localStorage.getItem('pf_token')||'';
 var PF_BASE='https://api.pricefinder.com.au/v1';
 var _pfCache={};
 
-function pfSetToken(token){PF_TOKEN=token;localStorage.setItem('pf_token',token);toast('Pricefinder connected ✓');}
+function pfSetToken(token){
+  token=(token||'').trim();
+  PF_TOKEN=token;
+  localStorage.setItem('pf_token',token);
+  toast('API key saved ✓ — testing connection…');
+  setTimeout(pfTestConnection,600);
+}
+async function pfTestConnection(){
+  if(!PF_TOKEN){showPFSetup();return;}
+  try{
+    var r=await fetch(PF_BASE+'/suggest/properties?q=15+Hillview+Road+Greenvale',{
+      headers:{'Authorization':'Bearer '+PF_TOKEN,'Accept':'application/json','Origin':location.origin},
+      mode:'cors'
+    });
+    if(r.ok){
+      toast('✅ Pricefinder connected — photos loading!');
+      _pfCache={};_props=null;
+      if(S.pg==='pdet')rPDet();
+    } else if(r.status===403){
+      var body=await r.text();
+      if(body.includes('allowlist')){
+        showPFDomainHelp();
+      } else {
+        toast('❌ Invalid API key — check and re-enter');
+      }
+    } else {
+      toast('API responded: '+r.status);
+    }
+  }catch(e){
+    // CORS block from browser - try via proxy
+    var result=await pfProxyFetch(PF_BASE+'/suggest/properties?q=15+Hillview+Road+Greenvale');
+    if(result&&result.matches){
+      toast('✅ Pricefinder connected via proxy!');
+      _pfCache={};
+      if(S.pg==='pdet')rPDet();
+    } else {
+      showPFDomainHelp();
+    }
+  }
+}
+function showPFDomainHelp(){
+  var html='<div class="sht"><div class="sht-h"></div>';
+  html+='<div class="sht-hdr"><div><div class="sht-ttl">🔑 One More Step</div>';
+  html+='<div class="sht-sub">Pricefinder needs to whitelist your app domain</div></div>';
+  html+='<button class="sht-x" onclick="cls()">✕</button></div>';
+  html+='<div class="sht-bd">';
+  html+='<div style="background:var(--gnbg);border:1px solid var(--green);border-radius:12px;padding:14px;margin-bottom:14px;font-size:13px;color:var(--text2);line-height:1.8">';
+  html+='✅ <strong>Your API key is saved</strong> — Pricefinder has it.<br><br>';
+  html+='The API returns "Host not in allowlist" which means Pricefinder needs to approve your app's domain before data can flow through.<br><br>';
+  html+='<strong>To fix this (takes 1 min):</strong>';
+  html+='</div>';
+  html+='<div style="background:var(--card2);border:1px solid var(--border);border-radius:12px;padding:14px;margin-bottom:12px">';
+  html+='<div style="font-size:13px;font-weight:700;color:var(--text);margin-bottom:8px">Option A — Do it yourself:</div>';
+  html+='<div style="font-size:13px;color:var(--text2);line-height:1.7">';
+  html+='1. Log in to <strong>app.pricefinder.com.au</strong><br>';
+  html+='2. Go to <strong>Settings → API Access</strong><br>';
+  html+='3. Under <strong>Allowed Domains</strong>, add:<br>';
+  html+='<div style="background:var(--card);border:1px solid var(--teal);border-radius:8px;padding:10px 14px;margin:6px 0;font-family:monospace;font-size:14px;font-weight:700;color:var(--teal)">dmks100s.github.io</div>';
+  html+='4. Save and come back — it will work immediately';
+  html+='</div></div>';
+  html+='<div style="background:var(--card2);border:1px solid var(--border);border-radius:12px;padding:14px">';
+  html+='<div style="font-size:13px;font-weight:700;color:var(--text);margin-bottom:8px">Option B — Email Pricefinder support:</div>';
+  html+='<div style="font-size:13px;color:var(--text2);line-height:1.7">';
+  html+='Email <strong>support@pricefinder.com.au</strong><br>';
+  html+='"Please whitelist domain <strong>dmks100s.github.io</strong> for API key zPlfZYr_bxA"';
+  html+='</div></div>';
+  html+='</div>';
+  html+='<div class="sht-ft">';
+  html+='<button class="btn btn-gh" onclick="cls()">Close</button>';
+  html+='<button class="btn btn-gd" style="touch-action:manipulation" onclick="cls();pfTestConnection()">🔄 Test Again</button>';
+  html+='</div></div>';
+  modal(html);
+}
 
 async function pfProxyFetch(url){
   // Use Claude API as a CORS proxy to fetch from Pricefinder
@@ -1716,82 +1898,38 @@ async function loadPFData(p){
 
 function savePFToken(){
   var el=document.getElementById('pft');
-  if(el){pfSetToken(el.value);}
+  if(el&&el.value.trim()){pfSetToken(el.value.trim());}
   cls();
 }
 function showPFSetup(){
+  var connected=!!PF_TOKEN;
   var html='<div class="sht"><div class="sht-h"></div>';
-  html+='<div class="sht-hdr"><div><div class="sht-ttl">🔑 Pricefinder API</div>';
-  html+='<div class="sht-sub">Connect for photos, valuations & sales history</div></div>';
+  html+='<div class="sht-hdr"><div><div class="sht-ttl">🔑 Pricefinder</div>';
+  html+='<div class="sht-sub">Photos · valuations · sales history</div></div>';
   html+='<button class="sht-x" onclick="cls()">✕</button></div>';
   html+='<div class="sht-bd">';
-  html+='<div style="background:var(--blbg);border:1px solid var(--border);border-radius:12px;padding:14px;margin-bottom:16px;font-size:13px;color:var(--text2);line-height:1.6">';
-  html+='<strong>How to connect Pricefinder:</strong><br>';
-  html+='1. Log in to <strong>pricefinder.com.au</strong><br>';
-  html+='2. Go to My Account → API Access<br>';
-  html+='3. Copy your API/Bearer token and paste below<br><br>';
-  html+='Unlocks: property photos · estimated value · last sold price · beds/baths/land · 30yr sales history';
-  html+='</div>';
-  html+='<div class="fg"><div class="fl">Pricefinder API Token</div>';
-  html+='<input class="fi" id="pft" type="password" value="'+(PF_TOKEN||'')+'" placeholder="Paste Bearer token here" autocomplete="off"></div>';
-  if(PF_TOKEN){html+='<div style="background:var(--gnbg);border:1px solid var(--green);border-radius:11px;padding:10px 14px;font-size:13px;color:var(--green)">✅ Token saved — Pricefinder connected</div>';}
+  if(connected){
+    html+='<div style="background:var(--gnbg);border:1.5px solid var(--green);border-radius:12px;padding:14px;margin-bottom:14px;display:flex;align-items:center;gap:10px">';
+    html+='<div style="font-size:26px">✅</div>';
+    html+='<div style="flex:1"><div style="font-size:14px;font-weight:700;color:var(--green)">API Key Saved</div>';
+    html+='<div style="font-size:12px;color:var(--muted)">Key: …'+PF_TOKEN.slice(-6)+'</div></div>';
+    html+='<button class="btn-teal-sm" style="touch-action:manipulation" onclick="cls();pfTestConnection()">Test Now</button>';
+    html+='</div>';
+    html+='<div style="background:var(--ambg);border:1px solid var(--amber);border-radius:12px;padding:12px 14px;margin-bottom:14px;font-size:12.5px;color:var(--text2);line-height:1.7">';
+    html+='⚡ <strong>Action needed — whitelist your domain:</strong><br>';
+    html+='In Pricefinder: <strong>Settings → API Access → Allowed Domains</strong><br>';
+    html+='Add exactly: <strong style="color:var(--teal);font-family:monospace">dmks100s.github.io</strong>';
+    html+='</div>';
+  }
+  html+='<div class="fg"><div class="fl">'+(connected?'Update Key':'Enter API Key')+'</div>';
+  html+='<input class="fi" id="pft" type="text" value="'+(PF_TOKEN||'')+'" placeholder="Paste Pricefinder API key" autocomplete="off" autocorrect="off" spellcheck="false"></div>';
   html+='</div>';
   html+='<div class="sht-ft">';
   html+='<button class="btn btn-gh" onclick="cls()">Cancel</button>';
-  html+='<button class="btn btn-gd" onclick="savePFToken()">Save & Connect</button>';
+  html+='<button class="btn btn-gd" style="touch-action:manipulation" onclick="savePFToken()">Save</button>';
   html+='</div></div>';
   modal(html);
 }
-function exportAllData(){
-  var data={li:localStorage.getItem('li')||'[]',la:localStorage.getItem('la')||'[]',lh:localStorage.getItem('lh')||'[]',lc:localStorage.getItem('lc')||'[]',ltd:localStorage.getItem('ltd')||'[]',lp:localStorage.getItem('lp')||'{}',sa:localStorage.getItem('sa')||'[]',sa_alts:localStorage.getItem('sa_alts')||'[]',exported:new Date().toISOString()};
-  var json=JSON.stringify(data,null,2);
-  var blob=new Blob([json],{type:'application/json'});
-  var url=URL.createObjectURL(blob);
-  var a=document.createElement('a');a.href=url;a.download='luxe-data-'+new Date().toISOString().split('T')[0]+'.json';
-  document.body.appendChild(a);a.click();document.body.removeChild(a);URL.revokeObjectURL(url);
-  toast('Exported ✓ — AirDrop or email to your phone');
-}
-function showSyncModal(){
-  var html='<div class="sht"><div class="sht-h"></div>';
-  html+='<div class="sht-hdr"><div><div class="sht-ttl">🔄 Sync Data</div><div class="sht-sub">Transfer call history between devices</div></div><button class="sht-x" onclick="cls()">✕</button></div>';
-  html+='<div class="sht-bd">';
-  html+='<div style="background:var(--blbg);border:1px solid var(--teal);border-radius:12px;padding:14px;margin-bottom:14px;font-size:13px;color:var(--text2);line-height:1.7">';
-  html+='📱 <strong>Laptop → Phone:</strong><br>1. On laptop tap Export Data<br>2. AirDrop or email the .json file to your phone<br>3. Open it, copy the text<br>4. Tap Import Data here and paste<br><br>';
-  html+='This device has: <strong>'+gI().length+' interactions · '+gA().filter(function(a){return!a.archived;}).length+' appts · '+gH().filter(function(h){return!h.archived;}).length+' hot list</strong>';
-  html+='</div>';
-  html+='<button class="btn btn-gd btn-fw" style="margin-bottom:10px;touch-action:manipulation" onclick="exportAllData();cls()">⬇ Export Data</button>';
-  html+='<button class="btn btn-bl btn-fw" style="touch-action:manipulation" onclick="cls();showImportData()">⬆ Import Data</button>';
-  html+='</div>';
-  html+='<div class="sht-ft"><button class="btn btn-gh btn-fw" onclick="cls()">Close</button></div></div>';
-  modal(html);
-}
-function showImportData(){
-  var html='<div class="sht"><div class="sht-h"></div>';
-  html+='<div class="sht-hdr"><div><div class="sht-ttl">⬆ Import Data</div><div class="sht-sub">Paste exported JSON to merge data</div></div><button class="sht-x" onclick="cls()">✕</button></div>';
-  html+='<div class="sht-bd"><div class="fg"><div class="fl">Paste JSON</div><textarea class="fta" id="imp-json" style="min-height:120px;font-family:monospace;font-size:12px" placeholder="Paste contents of exported .json file here…"></textarea></div></div>';
-  html+='<div class="sht-ft"><button class="btn btn-gh" onclick="cls()">Cancel</button><button class="btn btn-gd" style="touch-action:manipulation" onclick="doImportData()">Import & Merge</button></div></div>';
-  modal(html);
-}
-function doImportData(){
-  var el=document.getElementById('imp-json');
-  if(!el||!el.value.trim()){toast('Paste the JSON data first');return;}
-  try{
-    var d=JSON.parse(el.value);var merged=0;
-    if(d.li){var ei=gI();var eids=new Set(ei.map(function(x){return x.id;}));JSON.parse(d.li).forEach(function(x){if(!eids.has(x.id)){ei.push(x);merged++;}});sI();}
-    if(d.la){var ea=gA();var eaids=new Set(ea.map(function(x){return x.id;}));JSON.parse(d.la).forEach(function(x){if(!eaids.has(x.id)){ea.push(x);merged++;}});sA();}
-    if(d.lh){var eh=gH();var ehids=new Set(eh.map(function(x){return String(x.id);}));JSON.parse(d.lh).forEach(function(x){if(!ehids.has(String(x.id))){eh.push(x);merged++;}});sH();}
-    if(d.lc){var ec=gC();var ecids=new Set(ec.map(function(x){return x.id;}));JSON.parse(d.lc).forEach(function(x){if(!ecids.has(x.id)){ec.push(x);merged++;}});sC();}
-    _ix=null;_appts=null;_hot=null;_contacts=null;_todos=null;
-    cls();toast('Imported '+merged+' records ✓');bdg();if(S.pg==='home')rHome();
-  }catch(e){toast('Invalid data — check format');console.log(e);}
-}
-
-window.addEventListener('DOMContentLoaded',function(){
-  mergeCsvData();
-  rTB();
-  go('home');
-});
-
 </script>
 </body>
 </html>
