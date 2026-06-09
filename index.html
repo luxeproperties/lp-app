@@ -375,6 +375,15 @@ body.dark .vt-by{background:rgba(236,72,153,.2);color:#F9A8D4;}
 .bkc{width:22px;height:22px;border-radius:6px;border:1.5px solid var(--border);background:var(--card2);display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;font-size:13px;font-weight:700;}
 .bkc.on{background:var(--teal);border-color:var(--teal);color:#fff;}
 
+/* LOG ROWS */
+.log-row{display:flex;align-items:center;gap:10px;padding:12px 14px;background:var(--card);border-bottom:1px solid var(--border2);transition:background .1s;}
+.log-row.selected{background:var(--tlbg);}
+.log-row:active{background:var(--card2);}
+.log-tick{width:22px;height:22px;border-radius:6px;border:1.5px solid var(--border);background:var(--card2);display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;font-size:12px;font-weight:800;color:#fff;touch-action:manipulation;}
+.log-tick.on{background:var(--teal);border-color:var(--teal);}
+.log-body{display:flex;align-items:center;gap:10px;flex:1;min-width:0;cursor:pointer;}
+.log-ico{width:32px;height:32px;border-radius:50%;background:var(--card2);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:15px;flex-shrink:0;}
+
 /* EMPTY STATES */
 .empty{text-align:center;padding:60px 24px;}
 .empty-i{font-size:52px;opacity:.2;margin-bottom:14px;}
@@ -407,6 +416,7 @@ body.dark .vt-by{background:rgba(236,72,153,.2);color:#F9A8D4;}
     <div class="tab" id="t-props" onclick="go('props')"><div class="tab-i">⌂</div><div class="tab-t">Properties</div></div>
     <div class="tab" id="t-contacts" onclick="go('contacts')"><div class="tab-i">👤</div><div class="tab-t">Contacts</div></div>
     <div class="tab" id="t-search" onclick="go('search')"><div class="tab-i">🔍</div><div class="tab-t">Search</div></div>
+    <div class="tab" id="t-log" onclick="go('log')"><div class="tab-i">📋</div><div class="tab-t">Call Log</div></div>
     <div class="tab" id="t-appt" onclick="go('appt')"><div class="tab-i">📅</div><div class="tab-t">Appts</div><div class="dot" id="bd-appt" style="display:none"></div></div>
     <div class="tab" id="t-todo" onclick="go('todo')"><div class="tab-i">✅</div><div class="tab-t">To Do</div><div class="dot" id="bd-todo" style="display:none"></div></div>
   </div>
@@ -558,7 +568,7 @@ applyTheme();
 function go(pg,skipPrev){
   if(!skipPrev)S.prev=S.pg;
   S.pg=pg;
-  ['home','smart','props','contacts','appt','todo'].forEach(function(t){var e=$('t-'+t);if(e)e.classList.toggle('on',t===pg);});
+  ['home','smart','props','contacts','appt','todo','search','log'].forEach(function(t){var e=$('t-'+t);if(e)e.classList.toggle('on',t===pg);});
   $('scr').scrollTop=0;S.pgSz=40;
   rTB();
   var fns={home:rHome,smart:rSmart,props:rProps,contacts:rContacts,appt:rAppt,todo:rTodo,pdet:rPDet,cdet:rCDet,streets:rStreets,hot:rHot,log:rLog,bulk:rBulk,search:rSearch};
@@ -575,10 +585,12 @@ function rTB(){
     tb.innerHTML='<div style="flex:1;min-width:0"><div class="tb-logo">Luxe Properties</div><div class="tb-sub">Melbourne · Prospecting</div></div><div style="display:flex;gap:8px;align-items:center;flex-shrink:0">'+th+'<button class="tb-btn btn-add" onclick="addMenu()">+</button></div>';
   } else if(['pdet','cdet'].includes(p)){
     tb.innerHTML='<button class="tb-back" onclick="go(\''+S.prev+'\',true)">‹ Back</button><div style="flex:1"></div>'+th;
-  } else if(['streets','hot','log'].includes(p)){
+  } else if(['streets','hot'].includes(p)){
     tb.innerHTML='<button class="tb-back" onclick="go(\''+S.prev+'\',true)">‹ Back</button><div style="flex:1;text-align:center;font-size:15px;font-weight:700;color:var(--text)">'+(titles[p]||p)+'</div>'+th;
   } else if(p==='bulk'){
     tb.innerHTML='<button class="tb-back" onclick="go(S.prev||\'props\',true)">‹ Back</button><div style="flex:1;text-align:center;font-size:15px;font-weight:700;color:var(--text)">Bulk SMS</div>'+th;
+  } else if(p==='log'){
+    tb.innerHTML='<div style="flex:1;font-size:18px;font-weight:800;color:var(--text)">📋 Call Log</div>'+th;
   } else {
     tb.innerHTML='<div style="flex:1;font-size:18px;font-weight:800;color:var(--text)">'+(titles[p]||p)+'</div>'+th;
   }
@@ -609,20 +621,20 @@ function rHome(){
     '<div class="home-greeting">Good '+greeting()+', Alex 👋</div>'+
     '<div class="home-date">'+new Date().toLocaleDateString('en-AU',{weekday:'long',day:'numeric',month:'long'})+'</div>'+
     '<div class="home-callbar">'+
-      '<div style="flex:1"><div class="home-callbar-left">📞 Today: <span class="home-callbar-n">'+todCalls+'</span> · Total: '+gI().length+'</div>'+
-      '<div style="font-size:10px;opacity:.75;margin-top:1px">Interactions on this device</div></div>'+
-      '<button class="home-callbar-btn" style="touch-action:manipulation" onclick="go(\'smart\')">Smart Calls →</button>'+
+      '<div style="flex:1"><div class="home-callbar-left">📞 Today: <span class="home-callbar-n">'+todCalls+'</span> <span style="font-size:13px;font-weight:400;opacity:.8">calls · '+gI().length+' total</span></div>'+
+      '<div style="font-size:10px;opacity:.7;margin-top:1px">on this device</div></div>'+
+      '<button class="home-callbar-btn" style="touch-action:manipulation;min-width:110px;font-size:14px;font-weight:800;padding:10px 16px" onclick="go(\'smart\')">📞 Start Calling</button>'+
     '</div>'+
   '</div>'+
   // STAT GRID
   '<div class="stat-grid">'+
     statCard('🏠','Properties',tot.toLocaleString(),ST.length+' streets','gold',"go('props')")+
-    statCard('📞','Contacted',con,Math.round(con/tot*100)+'%','teal',"go('smart')")+
+    statCard('📞','Calls Today',todCalls,gI().length+' total','teal',"go('log')")+
     statCard('⭐','Interested',int,cb+' callbacks','green',"goF('interested','')")+
     statCard('🔥','Hot List',hot,vm+' voicemails','orange',"go('hot')")+
   '</div>'+
   // QUICK ACTIONS
-  '<div class="section-hdr"><span class="section-lbl">Quick Actions</span></div>'+
+  '<div class="section-hdr"><span class="section-lbl">Quick Actions</span><button class="section-link" style="touch-action:manipulation" onclick="go(\'log\')">📋 '+gI().length+' interactions</button></div>'+
   '<div class="qa-strip">'+
     '<div class="qa-chip" onclick="go(\'smart\')"><span>📞</span>Smart Calls</div>'+
     '<div class="qa-chip" onclick="go(\'bulk\')"><span>💬</span>Bulk SMS</div>'+
@@ -1284,8 +1296,154 @@ function rSearch(){
   }
 }
 /* ── CALL LOG ── */
-function rLog(){var sr=[...gI()].sort(function(a,b){return new Date(b.date)-new Date(a.date);});var TI={call:'📞',sms:'💬',email:'✉️',note:'📝'};$('scr').innerHTML=(sr.length===0?'<div class="empty"><div class="empty-i">📋</div><div class="empty-t">No interactions yet</div><div class="empty-s">Log calls, SMS or notes from any property page</div></div>':'<div style="padding:8px 16px;font-size:12px;color:var(--muted);border-bottom:1px solid var(--border2)">'+sr.length+' interactions</div>'+sr.map(function(i){return'<div class="row" style="cursor:pointer" onclick="'+(i.propertyId?'oProp('+i.propertyId+')':'')+'"><div class="tl-d" style="flex-shrink:0">'+(TI[i.type]||'📋')+'</div><div style="flex:1;min-width:0"><div class="rt" style="font-size:13.5px">'+((i.address||i.name)||'')+'</div><div class="rm"><span class="bdg '+bc(i.outcome)+'" style="font-size:10px">'+(i.outcome||i.type)+'</span><span class="rtime">'+ago(i.date)+' ago</span></div>'+(i.notes?'<div style="font-size:12px;color:var(--muted);font-style:italic;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin-top:3px">'+i.notes+'</div>':'')+'</div><button onclick="delLog(\''+i.id+'\')" style="background:none;border:none;color:var(--dim);font-size:18px;padding:4px;cursor:pointer;flex-shrink:0">🗑️</button></div>';}).join('')+'<div style="height:80px"></div>');}
-function delLog(id){_ix=gI().filter(function(i){return String(i.id)!==String(id);});sI();toast('Deleted');rLog();}
+function rLog(){
+  var sr=[...gI()].sort(function(a,b){return new Date(b.date)-new Date(a.date);});
+  var filt=S.logFilt||'all';
+  var srF=filt==='all'?sr:sr.filter(function(i){return i.type===filt;});
+  var sel=window._logSel||new Set();
+  var TI={call:'📞',sms:'💬',email:'✉️',note:'📝'};
+
+  var html='';
+  // HEADER STATS
+  html+='<div style="background:linear-gradient(135deg,var(--teal) 0%,var(--teal2) 100%);padding:16px 16px 14px;color:#fff">';
+  html+='<div style="font-size:22px;font-weight:800;margin-bottom:4px">Call Log</div>';
+  html+='<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:10px">';
+  var calls=sr.filter(function(i){return i.type==='call';}).length;
+  var sms=sr.filter(function(i){return i.type==='sms';}).length;
+  var emails=sr.filter(function(i){return i.type==='email';}).length;
+  var today=sr.filter(function(i){return new Date(i.date).toDateString()===new Date().toDateString();}).length;
+  html+='<div style="background:rgba(255,255,255,.15);border-radius:10px;padding:8px;text-align:center"><div style="font-size:20px;font-weight:800">'+calls+'</div><div style="font-size:9px;opacity:.85;text-transform:uppercase;letter-spacing:.8px">Calls</div></div>';
+  html+='<div style="background:rgba(255,255,255,.15);border-radius:10px;padding:8px;text-align:center"><div style="font-size:20px;font-weight:800">'+sms+'</div><div style="font-size:9px;opacity:.85;text-transform:uppercase;letter-spacing:.8px">SMS</div></div>';
+  html+='<div style="background:rgba(255,255,255,.15);border-radius:10px;padding:8px;text-align:center"><div style="font-size:20px;font-weight:800">'+emails+'</div><div style="font-size:9px;opacity:.85;text-transform:uppercase;letter-spacing:.8px">Email</div></div>';
+  html+='<div style="background:rgba(255,255,255,.15);border-radius:10px;padding:8px;text-align:center"><div style="font-size:20px;font-weight:800">'+today+'</div><div style="font-size:9px;opacity:.85;text-transform:uppercase;letter-spacing:.8px">Today</div></div>';
+  html+='</div></div>';
+
+  // FILTER CHIPS
+  html+='<div class="chips">';
+  [['all','All '+sr.length],['call','📞 Calls '+calls],['sms','💬 SMS '+sms],['email','✉️ Email '+emails]].forEach(function(f){
+    html+='<div class="chip'+(filt===f[0]?' on':'')+'" style="touch-action:manipulation" onclick="S.logFilt=\''+f[0]+'\';rLog()">'+f[1]+'</div>';
+  });
+  html+='</div>';
+
+  // TOOLBAR (shown when items selected)
+  html+='<div id="log-toolbar" style="padding:9px 14px;background:var(--card);border-bottom:1px solid var(--border);display:flex;align-items:center;gap:8px">';
+  if(sel.size>0){
+    html+='<button class="btn-ghost-sm" style="touch-action:manipulation" onclick="logSelAll()">'+( sel.size===srF.length?'Deselect All':'☑ Select All')+'</button>';
+    html+='<div style="flex:1;font-size:12.5px;color:var(--teal);font-weight:700">'+sel.size+' selected</div>';
+    html+='<button class="btn-teal-sm" style="touch-action:manipulation" onclick="logBulkSMS()">💬 Bulk SMS</button>';
+    html+='<button class="btn-ghost-sm" style="touch-action:manipulation" onclick="window._logSel=new Set();rLog()">Clear</button>';
+  } else {
+    html+='<div style="font-size:12px;color:var(--dim)">Tick contacts to bulk SMS</div>';
+    html+='<div style="flex:1"></div>';
+    if(srF.length>0){
+      html+='<button class="btn-ghost-sm" style="touch-action:manipulation" onclick="logSelAll()">☑ Select All</button>';
+    }
+  }
+  html+='</div>';
+
+  if(srF.length===0){
+    html+='<div class="empty"><div class="empty-i">📋</div><div class="empty-t">'+(sr.length===0?'No interactions yet':'No '+filt+' interactions')+'</div><div class="empty-s">'+(sr.length===0?'Log calls from any property to start tracking':'Try a different filter')+'</div></div>';
+  } else {
+    srF.forEach(function(ix){
+      var chk=sel.has(String(ix.id));
+      var hasPhone=!!(ix.phone||(ix.propertyId&&gP().find(function(p){return p.id===ix.propertyId&&p.p;})));
+      var ph=ix.phone||(ix.propertyId?((gP().find(function(p){return p.id===ix.propertyId;})||{}).p||''):'');
+      html+='<div class="log-row'+(chk?' selected':'')+'" id="lr'+ix.id+'">';
+      // TICK BOX
+      html+='<div class="log-tick'+(chk?' on':'')+'" style="touch-action:manipulation" onclick="logToggle(\''+ix.id+'\')">'+(chk?'✓':'')+'</div>';
+      // CONTENT (tap to open property)
+      html+='<div class="log-body" style="touch-action:manipulation" onclick="'+(ix.propertyId?'oProp('+ix.propertyId+')':'')+'">';
+      html+='<div class="log-ico">'+(TI[ix.type]||'📋')+'</div>';
+      html+='<div style="flex:1;min-width:0">';
+      html+='<div class="rt" style="font-size:13.5px">'+((ix.address||ix.name)||'Unknown')+'</div>';
+      html+='<div class="rm"><span class="bdg '+bc(ix.outcome)+'" style="font-size:10px">'+(ix.outcome||ix.type).replace(/_/g,' ')+'</span>';
+      html+='<span class="rtime">'+ago(ix.date)+'</span>';
+      html+=(ph?'<span style="font-family:monospace;font-size:10.5px;color:var(--dim)">'+ph+'</span>':'');
+      html+='</div>';
+      if(ix.notes)html+='<div style="font-size:12px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin-top:2px">'+ix.notes+'</div>';
+      html+='</div>';
+      html+='</div>';
+      // ACTION BUTTONS (right side)
+      html+='<div style="display:flex;flex-direction:column;gap:5px;flex-shrink:0">';
+      if(ph){
+        html+='<a href="tel:'+ph+'" class="ibt gn" style="text-decoration:none;display:flex;align-items:center;justify-content:center;touch-action:manipulation">📞</a>';
+        html+='<button class="ibt" style="touch-action:manipulation" onclick="logSendSMS(\''+ix.id+'\')">💬</button>';
+      } else {
+        html+='<button class="ibt" style="opacity:.3;touch-action:manipulation" disabled>📞</button>';
+        html+='<button class="ibt" style="opacity:.3;touch-action:manipulation" disabled>💬</button>';
+      }
+      html+='<button class="ibt" style="touch-action:manipulation" onclick="delLog(\''+ix.id+'\')">🗑️</button>';
+      html+='</div>';
+      html+='</div>';
+    });
+  }
+  html+='<div style="height:80px"></div>';
+  $('scr').innerHTML=html;
+}
+function delLog(id){
+  _ix=gI().filter(function(i){return String(i.id)!==String(id);});
+  if(window._logSel)window._logSel.delete(String(id));
+  sI();toast('Deleted');rLog();
+}
+function logToggle(id){
+  window._logSel=window._logSel||new Set();
+  if(window._logSel.has(String(id)))window._logSel.delete(String(id));
+  else window._logSel.add(String(id));
+  // Update row visual without full re-render
+  var row=document.getElementById('lr'+id);
+  if(row){
+    var chk=window._logSel.has(String(id));
+    row.classList.toggle('selected',chk);
+    var tick=row.querySelector('.log-tick');
+    if(tick){tick.classList.toggle('on',chk);tick.textContent=chk?'✓':'';}
+  }
+  // Update toolbar
+  var tb=document.getElementById('log-toolbar');
+  if(tb){
+    var sel=window._logSel;
+    var sr=[...gI()].sort(function(a,b){return new Date(b.date)-new Date(a.date);});
+    var filt=S.logFilt||'all';
+    var srF=filt==='all'?sr:sr.filter(function(i){return i.type===filt;});
+    if(sel.size>0){
+      tb.innerHTML='<button class="btn-ghost-sm" style="touch-action:manipulation" onclick="logSelAll()">'+( sel.size===srF.length?'Deselect All':'☑ Select All')+'</button><div style="flex:1;font-size:12.5px;color:var(--teal);font-weight:700">'+sel.size+' selected</div><button class="btn-teal-sm" style="touch-action:manipulation" onclick="logBulkSMS()">💬 Bulk SMS</button><button class="btn-ghost-sm" style="touch-action:manipulation" onclick="window._logSel=new Set();rLog()">Clear</button>';
+    } else {
+      tb.innerHTML='<div style="font-size:12px;color:var(--dim)">Tick contacts to bulk SMS</div><div style="flex:1"></div><button class="btn-ghost-sm" style="touch-action:manipulation" onclick="logSelAll()">☑ Select All</button>';
+    }
+  }
+}
+function logSelAll(){
+  window._logSel=window._logSel||new Set();
+  var sr=[...gI()].sort(function(a,b){return new Date(b.date)-new Date(a.date);});
+  var filt=S.logFilt||'all';
+  var srF=filt==='all'?sr:sr.filter(function(i){return i.type===filt;});
+  if(window._logSel.size===srF.length)window._logSel=new Set();
+  else window._logSel=new Set(srF.map(function(i){return String(i.id);}));
+  rLog();
+}
+function logBulkSMS(){
+  var sel=window._logSel||new Set();
+  if(!sel.size){toast('Select contacts first');return;}
+  // Build pool from selected interactions - get their phone numbers
+  var pool=[];var seen=new Set();
+  gI().forEach(function(ix){
+    if(!sel.has(String(ix.id)))return;
+    var ph=ix.phone||(ix.propertyId?((gP().find(function(p){return p.id===ix.propertyId;})||{}).p||''):'');
+    var nm=ix.name||(ix.propertyId?((gP().find(function(p){return p.id===ix.propertyId;})||{}).n||''):'');
+    var ad=ix.address||(ix.propertyId?((gP().find(function(p){return p.id===ix.propertyId;})||{}).a||''):'');
+    if(ph&&!seen.has(ph)){seen.add(ph);pool.push({id:ix.propertyId||('l'+ix.id),a:ad,n:nm,p:ph,s:'',sb:''});}
+  });
+  if(!pool.length){toast('No phone numbers on selected contacts');return;}
+  window._bkOv=pool;S.bkSel=new Set(pool.map(function(p){return p.id;}));S.prev='log';go('bulk');
+}
+function logSendSMS(id){
+  var ix=gI().find(function(i){return String(i.id)===String(id);});
+  if(!ix)return;
+  var ph=ix.phone||(ix.propertyId?((gP().find(function(p){return p.id===ix.propertyId;})||{}).p||''):'');
+  var nm=ix.name||(ix.propertyId?((gP().find(function(p){return p.id===ix.propertyId;})||{}).n||''):'');
+  var ad=ix.address||(ix.propertyId?((gP().find(function(p){return p.id===ix.propertyId;})||{}).a||''):'');
+  if(!ph){toast('No phone number on record');return;}
+  smsM(ph,nm,ad,ix.propertyId||null);
+}
 
 /* ── BULK SMS ── */
 var TMPLS=[{n:'Market Update',t:"Hi [Name], it's Alex from Luxe Properties Melbourne. Properties in your area have been performing really well. If you've been thinking about selling, I'd love to chat about what your home could achieve. – Alex 📱"},{n:'Just Sold Nearby',t:"Hi [Name], Alex from Luxe Properties here. I just sold a property on your street for a fantastic result! Buyer demand is very high right now. I'd love to share what your home could achieve – can we have a quick call? – Alex"},{n:'Just Listed Nearby',t:"Hi [Name], it's Alex from Luxe Properties Melbourne. A property near you just hit the market and we're seeing great buyer interest. Now is a great time to discuss your home's value. – Alex"},{n:'Free Appraisal',t:"Hi [Name], Alex from Luxe Properties Melbourne. I'd love to offer you a free, no-obligation market appraisal. Our recent results in your area have been outstanding. Would you be open to a quick visit? – Alex"},{n:'Introduction',t:"Hi [Name], my name is Alex Doguluer from Luxe Properties Melbourne. I work with homeowners in your area and wanted to introduce myself. If you'd like to know your home's value, I'm always happy to help. – Alex"},{n:'Re-engagement',t:"Hi [Name], Alex from Luxe Properties here. It's been a while – hope all is well! The market in your area has shifted and I'd love to share an updated appraisal when you have a moment. – Alex"},{n:'Auction Result',t:"Hi [Name], Alex from Luxe Properties here. We just had a fantastic auction result near you! Buyer competition is strong right now. Would you like to know what your home could achieve? – Alex"},{n:'Custom',t:"Hi [Name], "}];
