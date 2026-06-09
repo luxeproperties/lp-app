@@ -643,7 +643,9 @@ function rHome(){
     '<div class="qa-chip" onclick="go(\'log\')"><span>📋</span>Call Log<span class="qa-badge" style="background:var(--teal);">'+gI().length+'</span></div>'+
     '<div class="qa-chip" onclick="addPropM()"><span>🏠</span>Add Property</div>'+
     '<div class="qa-chip" onclick="addContM()"><span>👤</span>Add Contact</div>'+
-  '<div class="qa-chip" onclick="showPFSetup()"><span>🔑</span>Pricefinder</div>'+
+  '<div class="qa-chip" onclick="showDomainSetup()" style="touch-action:manipulation"><span>🏠</span>Domain API</div>'+
+    '<div class="qa-chip" onclick="refreshListingAlerts()" style="touch-action:manipulation"><span>🔔</span>Refresh Alerts</div>'+
+    '<div class="qa-chip" onclick="showPFSetup()" style="touch-action:manipulation"><span>🔑</span>Pricefinder</div>'+
     '<div class="qa-chip" onclick="showSyncModal()"><span>🔄</span>Sync Data</div>'+
   '</div>'+
   // UPCOMING APPRAISALS
@@ -907,55 +909,74 @@ function detTabContent(p,tab,pix,sub,isH){
   }
   if(tab==='property'){
     var nearby=gP().filter(function(x){return x.s===p.s&&x.id!==p.id&&!x.archived;}).slice(0,5);
-    // Trigger PF load async and refresh after
-    if(PF_TOKEN&&!p._pfLoaded){
-      // Show loading state
-      var lpDiv=document.getElementById('pf-loading');
-      if(lpDiv)lpDiv.style.display='block';
-      loadPFData(p).then(function(result){
-        if(S.pg==='pdet'&&S.pid===p.id&&S.detTab==='property'){
-          rPDet();
-        }
-      }).catch(function(e){console.log('PF load error:',e);});
-    } else if(PF_TOKEN&&p._pfLoaded&&!p._pfPhotos&&!p._pfEstMid){
-      // Token set but no data yet - show retry button
-      p._pfLoaded=false;
+    // Build search query for the property
+    var addrEnc=encodeURIComponent((p.a||'')+', Australia');
+    var addrShort=encodeURIComponent((p.a||'').split(',')[0]);
+
+    // SATELLITE/STREET VIEW (free, no API key needed)
+    // Use Esri World Imagery via iframe embed - shows aerial photo of property
+    var mapEmbed='<div style="position:relative;margin:0 0 14px;border-radius:14px;overflow:hidden;border:1px solid var(--border);background:var(--card2)">'+
+      '<iframe src="https://maps.google.com/maps?q='+addrEnc+'&t=k&z=18&output=embed" style="width:100%;height:200px;border:0;display:block" loading="lazy"></iframe>'+
+      '<div style="position:absolute;bottom:8px;right:8px;display:flex;gap:6px">'+
+        '<a href="https://www.google.com/maps/place/'+addrEnc+'" target="_blank" style="background:rgba(0,0,0,.7);color:#fff;padding:6px 10px;border-radius:8px;font-size:11px;font-weight:700;text-decoration:none;touch-action:manipulation">🗺️ Maps</a>'+
+        '<a href="https://www.google.com/maps/@?api=1&map_action=streetview&query='+addrEnc+'" target="_blank" style="background:rgba(0,0,0,.7);color:#fff;padding:6px 10px;border-radius:8px;font-size:11px;font-weight:700;text-decoration:none;touch-action:manipulation">👁 Street</a>'+
+      '</div>'+
+    '</div>';
+
+    // EXTERNAL LOOKUP LINKS - one tap to view full property details on major sites
+    var lookupRow='<div style="display:flex;gap:6px;margin-bottom:14px;overflow-x:auto;-webkit-overflow-scrolling:touch">'+
+      '<a href="https://www.domain.com.au/property-profile/'+addrShort+'-vic" target="_blank" style="flex-shrink:0;background:var(--card2);border:1px solid var(--border);border-radius:10px;padding:8px 12px;font-size:12px;font-weight:700;color:var(--text);text-decoration:none;touch-action:manipulation">🏠 Domain</a>'+
+      '<a href="https://www.realestate.com.au/sold/in-'+addrShort+'/list-1" target="_blank" style="flex-shrink:0;background:var(--card2);border:1px solid var(--border);border-radius:10px;padding:8px 12px;font-size:12px;font-weight:700;color:var(--text);text-decoration:none;touch-action:manipulation">🏘 REA</a>'+
+      '<a href="https://www.onthehouse.com.au/property/vic/'+addrShort+'" target="_blank" style="flex-shrink:0;background:var(--card2);border:1px solid var(--border);border-radius:10px;padding:8px 12px;font-size:12px;font-weight:700;color:var(--text);text-decoration:none;touch-action:manipulation">📊 On The House</a>'+
+      '<a href="https://www.propertyvalue.com.au/search?q='+addrEnc+'" target="_blank" style="flex-shrink:0;background:var(--card2);border:1px solid var(--border);border-radius:10px;padding:8px 12px;font-size:12px;font-weight:700;color:var(--text);text-decoration:none;touch-action:manipulation">💰 PropertyValue</a>'+
+    '</div>';
+
+    // Try Domain API if connected (free tier)
+    if(DOMAIN_TOKEN&&!p._dmLoaded){
+      loadDomainData(p).then(function(){if(S.pg==='pdet'&&S.pid===p.id&&S.detTab==='property')rPDet();});
     }
-    var photos=p._pfPhotos||[];
-    var photoStrip=photos.length?
-      '<div style="margin:0 0 12px;overflow-x:auto;display:flex;gap:8px;-webkit-overflow-scrolling:touch">'+
-        photos.map(function(url){return'<img src="'+url+'" style="width:200px;height:140px;object-fit:cover;border-radius:12px;flex-shrink:0;border:1px solid var(--border)" onerror="this.style.display=\'none\'">'; }).join('')+
-      '</div>'
-      : (!PF_TOKEN?
-        '<div style="background:var(--gdbg);border:1px solid var(--gold);border-radius:12px;padding:12px 14px;margin-bottom:12px;display:flex;align-items:center;gap:10px;cursor:pointer;touch-action:manipulation" onclick="showPFSetup()">'+
-          '<span style="font-size:24px">🔑</span>'+
-          '<div><div style="font-size:13px;font-weight:700;color:var(--gold)">Connect Pricefinder</div><div style="font-size:12px;color:var(--muted)">Tap to add your API token for property photos, valuations & sales history</div></div>'+
-        '</div>'
-        :'<div id="pf-loading" style="background:var(--blbg);border:1px solid var(--teal);border-radius:12px;padding:14px;margin-bottom:12px;display:flex;align-items:center;justify-content:space-between;gap:10px">'+
-          '<div style="font-size:13px;color:var(--teal)">⏳ Loading from Pricefinder…</div>'+
-          '<button class="btn btn-gh btn-sm" style="touch-action:manipulation" onclick="var pp=gP().find(function(x){return x.id==='+p.id+';});if(pp){pp._pfLoaded=false;S.detTab=\'property\';rPDet();}">Retry</button>'+
-        '</div>');
+
+    var domainData='';
+    if(DOMAIN_TOKEN){
+      if(p._dmEst){
+        domainData='<div style="background:var(--gnbg);border:1px solid var(--green);border-radius:12px;padding:12px 14px;margin-bottom:12px;font-size:13px;color:var(--text2)">'+
+          '<div style="font-size:10px;font-weight:800;color:var(--green);text-transform:uppercase;letter-spacing:1.2px;margin-bottom:4px">Domain.com.au Estimate</div>'+
+          '<div style="font-size:18px;font-weight:800;color:var(--text);font-family:Playfair Display,serif">'+p._dmEst+'</div>'+
+        '</div>';
+      } else if(!p._dmLoaded){
+        domainData='<div style="background:var(--card2);border:1px solid var(--border);border-radius:12px;padding:10px 14px;margin-bottom:12px;font-size:12px;color:var(--dim);text-align:center">Loading Domain estimate…</div>';
+      }
+    } else {
+      domainData='<div style="background:var(--gdbg);border:1px solid var(--gold);border-radius:12px;padding:12px 14px;margin-bottom:12px;display:flex;align-items:center;gap:10px;cursor:pointer;touch-action:manipulation" onclick="showDomainSetup()">'+
+        '<span style="font-size:22px">🔓</span>'+
+        '<div style="flex:1"><div style="font-size:13px;font-weight:700;color:var(--gold)">Connect Domain.com.au (Free)</div>'+
+        '<div style="font-size:11px;color:var(--muted);margin-top:2px">Get auto property estimates · No credit card</div></div>'+
+      '</div>';
+    }
+
     var salesHtml='';
     if(p._pfSales&&p._pfSales.length){
       salesHtml='<div style="margin-top:12px"><div class="info-ttl">Sales History</div>'+
         p._pfSales.map(function(s){return'<div class="info-r"><div class="ir-l">'+(s.contractDate||s.settledDate||'').split('-').slice(0,2).join('/')+'</div><div class="ir-v" style="font-weight:700;color:var(--teal)">'+(s.price?'$'+s.price.toLocaleString():'—')+'</div></div>';}).join('')+
       '</div>';
     }
+
     return '<div class="card-block" style="padding:14px 16px">'+
-      photoStrip+
+      mapEmbed+
+      lookupRow+
+      domainData+
       '<div class="info-ttl">Property Details</div>'+
       '<div class="info-r"><div class="ir-l">Address</div><div class="ir-v">'+(p.a||'—')+'</div></div>'+
       '<div class="info-r"><div class="ir-l">Suburb</div><div class="ir-v">'+(p.sb||'Melbourne')+'</div></div>'+
       '<div class="info-r"><div class="ir-l">Type</div><div class="ir-v">'+(p.propType||'Residential')+'</div></div>'+
-      '<div class="info-r"><div class="ir-l">Est. Value</div><div class="ir-v" style="font-weight:700;color:var(--teal)">'+(p.estval||p._pfEstMid?('$'+Math.round((p._pfEstMid||0)/1000)+'K'):sub.med||'—')+'</div></div>'+
-      (p._pfEstLow&&p._pfEstHigh?'<div class="info-r"><div class="ir-l">Range</div><div class="ir-v" style="color:var(--muted)">'+'$'+Math.round(p._pfEstLow/1000)+'K — $'+Math.round(p._pfEstHigh/1000)+'K</div></div>':'')+
-      '<div class="info-r"><div class="ir-l">Last Sold</div><div class="ir-v">'+(p._pfLastSale?p._pfLastSale+(p._pfLastSaleDate?' ('+p._pfLastSaleDate.slice(0,7)+')':''):p.lastSold||'—')+'</div></div>'+
+      '<div class="info-r"><div class="ir-l">Est. Value</div><div class="ir-v" style="font-weight:700;color:var(--teal)">'+(p.estval||(p._pfEstMid?('$'+Math.round(p._pfEstMid/1000)+'K'):sub.med||'—'))+'</div></div>'+
+      '<div class="info-r"><div class="ir-l">Last Sold</div><div class="ir-v">'+(p._pfLastSale||p.lastSold||'—')+'</div></div>'+
       '<div class="info-r"><div class="ir-l">Beds/Bath</div><div class="ir-v">'+(p.beds?p.beds+'🛏  '+(p.baths||'—')+'🚿  '+(p.cars||'—')+'🚗':'—')+'</div></div>'+
       (p.landSqm?'<div class="info-r"><div class="ir-l">Land</div><div class="ir-v">'+p.landSqm+' m²</div></div>':'')+
       (p.no?'<div class="info-r"><div class="ir-l">Notes</div><div class="ir-v" style="color:var(--muted)">'+p.no+'</div></div>':'')+
       salesHtml+
     '</div>'+
-    (nearby.length?'<div class="card-block" style="padding:14px 16px;margin-top:10px"><div class="info-ttl">Same Street ('+nearby.length+')</div>'+nearby.map(function(n){return'<div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--border2);cursor:pointer" onclick="oProp('+n.id+')"><img class="av sm" src="'+avatarUrl(n.n,n.e,60)+'" onerror="this.style.display=\'none\';" loading="lazy" style="border-radius:8px"><div style="flex:1;min-width:0"><div class="rt" style="font-size:13px">'+n.a+'</div><div class="rs" style="font-size:12px">'+(n.n||'Unknown')+'</div></div><span class="bdg '+bc(n.status)+'" style="font-size:10px">'+(n.status||'').replace('_',' ')+'</span></div>';}).join('')+'</div>':'');
+    (nearby.length?'<div class="card-block" style="padding:14px 16px;margin-top:10px"><div class="info-ttl">Same Street ('+nearby.length+')</div>'+nearby.map(function(n){return'<div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--border2);cursor:pointer;touch-action:manipulation" onclick="oProp('+n.id+')"><img class="av sm" src="'+avatarUrl(n.n,n.e,60)+'" onerror="this.style.display=\'none\'" loading="lazy" style="border-radius:8px"><div style="flex:1;min-width:0"><div class="rt" style="font-size:13px">'+n.a+'</div><div class="rs" style="font-size:12px">'+(n.n||'Unknown')+'</div></div><span class="bdg '+bc(n.status)+'" style="font-size:10px">'+(n.status||'').replace('_',' ')+'</span></div>';}).join('')+'</div>':'');
   }
   if(tab==='suburb'){
     var s=sub||SUBURB_DATA['Melbourne'];
