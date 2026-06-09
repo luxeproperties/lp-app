@@ -433,6 +433,23 @@ const _HL=[{"a":"8 Normanby Drive, Greenvale","n":"Andrew &  Melinda Ellis","p":
 
 
 
+
+/* ── ERROR HANDLER ── */
+window.addEventListener('error', function(e){
+  console.error('App error:', e.error||e.message, 'at', e.filename, ':', e.lineno);
+  try{
+    var toast=document.getElementById('toast');
+    if(toast){
+      toast.innerHTML='⚠️ '+(e.message||'Error').substring(0,100);
+      toast.classList.add('on');
+      setTimeout(function(){toast.classList.remove('on');},4000);
+    }
+  }catch(_){}
+});
+window.addEventListener('unhandledrejection', function(e){
+  console.error('Promise rejection:', e.reason);
+});
+
 /* ── PHONE FORMATTER ── */
 function fmtPh(ph){
   if(!ph)return '';
@@ -1960,6 +1977,211 @@ function showPFSetup(){
   modal(html);
 }
 
+
+
+/* ── DOMAIN.COM.AU API ── */
+var DOMAIN_TOKEN=localStorage.getItem('dm_token')||'';
+
+function dmSetToken(token){
+  token=(token||'').trim();
+  DOMAIN_TOKEN=token;
+  localStorage.setItem('dm_token',token);
+  toast('Domain API key saved ✓');
+}
+
+function saveDomainToken(){
+  var el=document.getElementById('dmt');
+  if(el&&el.value.trim()){dmSetToken(el.value.trim());}
+  cls();
+}
+
+async function dmCallAPI(endpoint, method, body){
+  if(!DOMAIN_TOKEN)return null;
+  method=method||'GET';
+  try{
+    var opts={
+      method:method,
+      headers:{
+        'X-Api-Key':DOMAIN_TOKEN,
+        'Accept':'application/json'
+      },
+      mode:'cors'
+    };
+    if(body){
+      opts.headers['Content-Type']='application/json';
+      opts.body=JSON.stringify(body);
+    }
+    var r=await fetch('https://api.domain.com.au/v1'+endpoint, opts);
+    if(r.ok)return await r.json();
+    if(r.status===401||r.status===403){
+      console.log('Domain API: '+r.status+' '+endpoint);
+      return {_error:r.status};
+    }
+    return null;
+  }catch(e){
+    console.log('Domain API network error:',e.message);
+    return {_error:'network'};
+  }
+}
+
+async function loadDomainData(p){
+  if(!DOMAIN_TOKEN||p._dmLoaded)return;
+  p._dmLoaded=true;
+  try{
+    var suggest=await dmCallAPI('/properties/_suggest?terms='+encodeURIComponent(p.a||''));
+    if(!suggest||suggest._error||!suggest.length){
+      if(suggest&&suggest._error)p._dmError=suggest._error;
+      return;
+    }
+    var match=suggest[0];
+    if(match.id){
+      p._dmId=match.id;
+      var details=await dmCallAPI('/properties/'+match.id);
+      if(details&&!details._error){
+        if(details.bedrooms)p.beds=p.beds||details.bedrooms;
+        if(details.bathrooms)p.baths=p.baths||details.bathrooms;
+        if(details.carspaces)p.cars=p.cars||details.carspaces;
+        if(details.areaSize)p.landSqm=details.areaSize;
+        if(details.propertyType)p.propType=details.propertyType;
+      }
+      var est=await dmCallAPI('/properties/'+match.id+'/priceEstimate');
+      if(est&&!est._error&&est.midPrice){
+        p._dmEst='$'+Math.round(est.midPrice/1000)+'K  ($'+Math.round(est.lowerPrice/1000)+'K-$'+Math.round(est.upperPrice/1000)+'K)';
+      }
+    }
+    sP();
+  }catch(e){console.log('loadDomainData err',e);}
+}
+
+async function searchDomainListings(suburb, listingType){
+  if(!DOMAIN_TOKEN)return [];
+  var body={
+    listingType: listingType==='sold'?'Sold':'Sale',
+    locations:[{state:'VIC',suburb:suburb,includeSurroundingSuburbs:false}],
+    pageSize:10,
+    sort:{sortKey:'DateUpdated',direction:'Descending'}
+  };
+  var data=await dmCallAPI('/listings/residential/_search','POST',body);
+  if(!data||data._error||!data.length)return [];
+  return data.map(function(item){
+    var l=item.listing||{};
+    var pd=l.propertyDetails||{};
+    return {
+      address:pd.displayableAddress||(pd.streetNumber+' '+pd.street+', '+pd.suburb),
+      suburb:pd.suburb,
+      price:l.priceDetails?(l.priceDetails.displayPrice||(l.priceDetails.price?'$'+l.priceDetails.price.toLocaleString():'')):'',
+      beds:pd.bedrooms,
+      baths:pd.bathrooms,
+      type:listingType,
+      date:l.dateUpdated,
+      url:l.seoUrl?'https://www.domain.com.au/'+l.seoUrl:'',
+      photo:l.media&&l.media[0]?l.media[0].url:''
+    };
+  });
+}
+
+function showDomainSetup(){
+  var connected=!!DOMAIN_TOKEN;
+  var html='<div class="sht"><div class="sht-h"></div>';
+  html+='<div class="sht-hdr"><div><div class="sht-ttl">🏠 Domain.com.au API</div>';
+  html+='<div class="sht-sub">Free Innovation tier</div></div>';
+  html+='<button class="sht-x" onclick="cls()">✕</button></div>';
+  html+='<div class="sht-bd">';
+  if(connected){
+    html+='<div style="background:var(--gnbg);border:1px solid var(--green);border-radius:12px;padding:14px;margin-bottom:14px;display:flex;align-items:center;gap:10px">';
+    html+='<div style="font-size:24px">✅</div>';
+    html+='<div style="flex:1"><div style="font-size:14px;font-weight:700;color:var(--green)">API Key Saved</div>';
+    html+='<div style="font-size:12px;color:var(--muted)">Key: ...'+DOMAIN_TOKEN.slice(-8)+'</div></div>';
+    html+='<button class="btn-teal-sm" style="touch-action:manipulation" onclick="cls();dmTestConnection()">Test</button>';
+    html+='</div>';
+    html+='<div style="background:var(--ambg);border:1px solid var(--amber);border-radius:12px;padding:12px 14px;margin-bottom:14px;font-size:12.5px;color:var(--text2);line-height:1.7">';
+    html+='If property data not loading, log into <strong>developer.domain.com.au</strong>, open your project, and add this exact domain to your allowed origins: <br><br>';
+    html+='<div style="background:var(--card2);padding:8px 10px;border-radius:8px;font-family:monospace;font-size:13px;font-weight:700;color:var(--teal);text-align:center;margin-top:4px">dmks100s.github.io</div>';
+    html+='</div>';
+  } else {
+    html+='<div style="background:var(--blbg);border:1px solid var(--teal);border-radius:12px;padding:14px;margin-bottom:14px;font-size:13px;color:var(--text2);line-height:1.7">';
+    html+='<strong>Get a free API key (2 mins):</strong><br>';
+    html+='1. Open <strong>developer.domain.com.au</strong><br>';
+    html+='2. Sign in with Google · Create a project<br>';
+    html+='3. Choose <strong>Innovation tier (free)</strong><br>';
+    html+='4. Copy your API key and paste below';
+    html+='</div>';
+  }
+  html+='<div class="fg"><div class="fl">'+(connected?'Update Key':'API Key')+'</div>';
+  html+='<input class="fi" id="dmt" type="text" value="'+(DOMAIN_TOKEN||'')+'" placeholder="ykey_xxxx..." autocomplete="off" autocorrect="off" spellcheck="false"></div>';
+  html+='<button class="btn btn-bl btn-fw" style="touch-action:manipulation;margin-top:6px" onclick="window.open(\'https://developer.domain.com.au\',\'_blank\')">↗ Open Domain Developer Portal</button>';
+  html+='</div>';
+  html+='<div class="sht-ft">';
+  html+='<button class="btn btn-gh" onclick="cls()">Cancel</button>';
+  html+='<button class="btn btn-gd" style="touch-action:manipulation" onclick="saveDomainToken()">Save</button>';
+  html+='</div></div>';
+  modal(html);
+}
+
+async function dmTestConnection(){
+  if(!DOMAIN_TOKEN){showDomainSetup();return;}
+  toast('Testing Domain API...');
+  var test=await dmCallAPI('/properties/_suggest?terms=15+Hillview+Road+Greenvale');
+  if(test&&!test._error&&test.length){
+    toast('✅ Domain API connected — data flowing!');
+  } else if(test&&test._error===403){
+    toast('❌ Domain returned 403 - add dmks100s.github.io to allowed domains');
+    setTimeout(showDomainSetup,1500);
+  } else if(test&&test._error==='network'){
+    toast('❌ Network blocked - likely CORS or domain restriction');
+    setTimeout(showDomainSetup,1500);
+  } else {
+    toast('⚠️ Unexpected response — check key');
+  }
+}
+
+async function refreshListingAlerts(){
+  if(!DOMAIN_TOKEN){
+    showDomainSetup();
+    return;
+  }
+  toast('Searching latest listings across 7 suburbs...');
+  var suburbs=['Greenvale','Mickleham','Craigieburn','Roxburgh Park','Sunbury','Donnybrook','Kalkallo'];
+  var found=0;
+  var alerts=JSON.parse(localStorage.getItem('sa_alts')||'[]');
+  var seen=new Set(alerts.map(function(a){return a.addr+'|'+a.date;}));
+  for(var i=0;i<suburbs.length;i++){
+    var suburb=suburbs[i];
+    try{
+      var sold=await searchDomainListings(suburb,'sold');
+      var listed=await searchDomainListings(suburb,'sale');
+      [...sold.slice(0,5),...listed.slice(0,5)].forEach(function(l){
+        if(!l.address)return;
+        var key=l.address+'|'+l.date;
+        if(seen.has(key))return;
+        seen.add(key);
+        var streetMatch=l.address.match(/\d+\w?\s+(.+?)(?:,|$)/);
+        var street=streetMatch?streetMatch[1].toUpperCase().trim().substring(0,25):'';
+        var nb=gP().filter(function(p){return p.s===street&&!p.archived;}).length;
+        alerts.unshift({
+          type:sold.indexOf(l)>=0?'sold':'listed',
+          addr:l.address,
+          street:street,
+          nb:nb,
+          date:l.date||new Date().toISOString(),
+          price:l.price||'',
+          beds:l.beds||'',
+          photo:l.photo||'',
+          url:l.url||''
+        });
+        found++;
+      });
+    }catch(e){console.log('Alert err for '+suburb+':',e);}
+  }
+  localStorage.setItem('sa_alts',JSON.stringify(alerts.slice(0,50)));
+  if(found===0){
+    toast('No new listings found (or API blocked). Check Domain setup.');
+  } else {
+    toast('Found '+found+' new alerts ✓');
+  }
+  if(S.pg==='smart')rSmart();
+  if(S.pg==='home')rHome();
+}
 
 /* ── INIT ── */
 window.addEventListener('DOMContentLoaded',function(){
