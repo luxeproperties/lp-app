@@ -1213,19 +1213,6 @@ function rAppt(){
   setTimeout(swipes,80);
 }
 function apptSMS(aid){
-  var a=gA().find(function(x){return String(x.id)===aid;});
-  if(!a)return;
-  var ph=a.p||a.phone||'';
-  var nm=a.n||a.name||'';
-  var addr=a.a||a.address||'';
-  if(!ph){toast('No phone number on this appraisal');return;}
-  // Pre-fill with appraisal confirmation template
-  var apptDate=fmtApptFull(a.d||a.date||'',a.time||'');
-  var msg='Hi '+(nm.split(' ')[0]||'there')+', this is Alex from Luxe Properties Melbourne confirming your property appraisal at '+addr+' on '+apptDate+'. Please let me know if you need to reschedule. Looking forward to meeting you! — Alex 📱';
-  window._apptSMSMsg=msg;
-  window._apptSMSPh=ph;
-  window._apptSMSNm=nm;
-  window._apptSMSAddr=addr;
   showApptSMS(aid);
 }
 function showApptSMS(aid){
@@ -1237,39 +1224,64 @@ function showApptSMS(aid){
   var fn=nm.split(' ')[0]||'there';
   var apptDate=fmtApptFull(a.d||a.date||'',a.time||'');
   var templates=[
-    {n:'Confirmation',t:'Hi '+fn+', Alex from Luxe Properties here. Just confirming your property appraisal at '+addr+' on '+apptDate+'. See you then! — Alex'},
-    {n:'Reminder',t:'Hi '+fn+', a friendly reminder your appraisal at '+addr+' is coming up on '+apptDate+'. If you need to reschedule please let me know. — Alex'},
-    {n:'Preparation Tips',t:'Hi '+fn+', Alex here. Your appraisal at '+addr+' is on '+apptDate+'. To help maximise your result, I suggest light tidying, turning on lights, and opening blinds. Happy to answer any questions beforehand! — Alex'},
-    {n:'Post Appraisal Follow-up',t:'Hi '+fn+', Alex Doguluer from Luxe Properties. Thank you for having me at '+addr+' today. I will prepare your market appraisal and be in touch shortly. — Alex 0' },
+    {n:'Confirmation',t:'Hi '+fn+', Alex from Luxe Properties here. Just confirming your property appraisal at '+addr+' on '+apptDate+'. See you then! - Alex'},
+    {n:'Reminder',t:'Hi '+fn+', a friendly reminder your appraisal at '+addr+' is coming up on '+apptDate+'. If you need to reschedule please let me know. - Alex'},
+    {n:'Preparation Tips',t:'Hi '+fn+', Alex here. Your appraisal at '+addr+' is on '+apptDate+'. To help maximise your result, I suggest light tidying, turning on lights and opening blinds. Happy to answer questions! - Alex'},
+    {n:'Post Appraisal',t:'Hi '+fn+', Alex Doguluer from Luxe Properties. Thank you for having me at '+addr+' today. I will prepare your market appraisal and be in touch shortly. - Alex'},
     {n:'Custom',t:'Hi '+fn+', Alex from Luxe Properties here. '}
   ];
+  window._apptTemplates=templates;
+  window._apptSMSPh=ph;
   var html='<div class="sht"><div class="sht-h"></div>';
   html+='<div class="sht-hdr"><div><div class="sht-ttl">💬 SMS to Vendor</div>';
   html+='<div class="sht-sub">'+(nm||'Owner')+' · '+(ph||'No phone')+'</div></div>';
   html+='<button class="sht-x" onclick="cls()">✕</button></div>';
   html+='<div class="sht-bd">';
   if(!ph){
-    html+='<div style="background:var(--rdbg);border:1px solid var(--red);border-radius:12px;padding:12px 14px;margin-bottom:14px;font-size:13px;color:var(--red)">⚠️ No phone number on this appraisal. Add a phone number first.</div>';
+    html+='<div style="background:var(--rdbg);border:1px solid var(--red);border-radius:12px;padding:12px 14px;margin-bottom:12px;font-size:13px;color:var(--red)">No phone number — add one first.</div>';
   }
   html+='<div class="fg"><div class="fl">Template</div>';
-  window._apptTemplates=templates;
   templates.forEach(function(t,i){
-    html+='<div class="tc'+(i===0?' on':'')+'" id="ast'+i+'" onclick="apptPickTIdx('+i+')" style="touch-action:manipulation"><div class="tr">'+(i===0?'<span style="color:#000;font-size:10px;font-weight:900">✓</span>':'')+'</div><div style="flex:1;min-width:0"><div class="tc-n">'+t.n+'</div><div class="tc-p">'+t.t.substring(0,65)+'…</div></div></div>';
+    html+='<div class="tc'+(i===0?' on':'')+'" onclick="apptPickTIdx('+i+')" style="touch-action:manipulation">';
+    html+='<div class="tr">'+(i===0?'<span style="color:#000;font-size:10px;font-weight:900">✓</span>':'')+'</div>';
+    html+='<div style="flex:1;min-width:0"><div class="tc-n">'+t.n+'</div>';
+    html+='<div class="tc-p">'+t.t.substring(0,65)+'…</div></div></div>';
   });
   html+='</div>';
-  html+='<div class="fg"><div class="fl">Message <span id="aslen" style="font-weight:400;text-transform:none;letter-spacing:0;color:var(--dim);font-size:11px"></span></div>';
-  html+='<textarea class="fta" id="asms" style="min-height:120px" oninput="var l=document.getElementById(\'aslen\');if(l)l.textContent=this.value.length+\'chars\'">'+templates[0].t+'</textarea></div>';
+  html+='<div class="fg"><div class="fl">Message <span id="aslen" style="font-weight:400;text-transform:none;color:var(--dim);font-size:11px"></span></div>';
+  html+='<textarea class="fta" id="asms" style="min-height:120px">'+templates[0].t+'</textarea></div>';
   html+='</div>';
   html+='<div class="sht-ft">';
   html+='<button class="btn btn-gh" onclick="cls()">Cancel</button>';
   if(ph){
-    html+='<a class="btn btn-gd" id="asmsl" href="sms:'+ph+'?body='+encodeURIComponent(templates[0].t)+'" onclick="logApptSMS(\''+aid+'\')" style="text-decoration:none;touch-action:manipulation">Open Messages →</a>';
+    html+='<button class="btn btn-gd" style="touch-action:manipulation" onclick="sendApptSMS('+JSON.stringify(aid)+')">Open Messages →</button>';
   } else {
     html+='<button class="btn btn-gd" disabled style="opacity:.35">No phone</button>';
   }
   html+='</div></div>';
   modal(html);
-  document.getElementById('aslen').textContent=templates[0].t.length+' chars';
+  var ta=document.getElementById('asms');
+  if(ta){
+    ta.addEventListener('input',function(){
+      var l=document.getElementById('aslen');
+      if(l)l.textContent=this.value.length+' chars';
+    });
+    var l=document.getElementById('aslen');
+    if(l)l.textContent=templates[0].t.length+' chars';
+  }
+}
+function sendApptSMS(aid){
+  var a=gA().find(function(x){return String(x.id)===aid;});
+  if(!a)return;
+  var ph=a.p||a.phone||'';
+  if(!ph){toast('No phone number');return;}
+  var ta=document.getElementById('asms');
+  var msg=ta?ta.value:(window._apptTemplates&&window._apptTemplates[0]?window._apptTemplates[0].t:'');
+  window.open('sms:'+ph+'?body='+encodeURIComponent(msg),'_self');
+  gI().push({id:Date.now(),type:'sms',address:a.a||a.address||'',name:a.n||a.name||'',phone:ph,outcome:'sent',notes:msg.substring(0,120),date:new Date().toISOString()});
+  sI();
+  cls();
+  toast('SMS opened in Messages');
 }
 function apptPickTIdx(i){
   var templates=window._apptTemplates||[];
@@ -1279,50 +1291,46 @@ function apptPickTIdx(i){
     if(tr)tr.innerHTML=j===i?'<span style="color:#000;font-size:10px;font-weight:900">✓</span>':'';
   });
   var ta=document.getElementById('asms');
-  if(ta&&templates[i]){ta.value=templates[i].t;ta.dispatchEvent(new Event('input'));}
-  var lnk=document.getElementById('asmsl');
-  if(lnk&&window._apptSMSPh)lnk.href='sms:'+window._apptSMSPh+'?body='+encodeURIComponent(templates[i]?templates[i].t:'');
-}
-function logApptSMS(aid){
-  var ta=document.getElementById('asms');
-  var msg=ta?ta.value:'';
-  var a=gA().find(function(x){return String(x.id)===aid;});
-  if(a){
-    gI().push({id:Date.now(),type:'sms',address:a.a||a.address||'',name:a.n||a.name||'',phone:a.p||a.phone||'',outcome:'sent',notes:msg.substring(0,120),date:new Date().toISOString()});
-    sI();
+  if(ta&&templates[i]){
+    ta.value=templates[i].t;
+    ta.dispatchEvent(new Event('input'));
   }
-  cls();
-  toast('SMS opened in Messages');
 }
+function logApptSMS(aid){sendApptSMS(aid);}
 function aRow(a,op){
   var aid=String(a.id);
   var ph=a.p||a.phone||'';
   var nm=a.n||a.name||'';
   var addr=a.a||a.address||'';
-  return '<div class="sw" id="swa'+aid+'">'+
-    '<div class="sw-acts">'+
-      '<div class="sa sa-bl" onclick="showApptSMS('\''+aid+'\'')"><span>💬</span>SMS</div>'+
-      '<div class="sa sa-pu" onclick="reschedM('\''+aid+'\'')"><span>📅</span>Reschedule</div>'+
-      '<div class="sa sa-gr" onclick="archAp('\''+aid+'\'')"><span>'+(a.archived?'↩️':'📦')+'</span>'+(a.archived?'Restore':'Archive')+'</div>'+
-      '<div class="sa sa-rd" onclick="delAp('\''+aid+'\'')"><span>🗑️</span>Delete</div>'+
-    '</div>'+
-    '<div class="row" id="ar'+aid+'" style="opacity:'+op+'">'+
-      '<div class="row-in" style="cursor:pointer" onclick="reschedM('\''+aid+'\'')">'+
-        '<div style="width:9px;height:9px;border-radius:50%;flex-shrink:0;margin-top:6px;'+(a.status==='CONFIRMED'?'background:var(--green);box-shadow:0 0 5px var(--green)':'background:var(--red)')+'"></div>'+
-        '<div style="flex:1;min-width:0;margin-left:10px">'+
-          '<div class="rt">'+(addr||'Unknown address')+'</div>'+
-          '<div class="rs">'+(nm||'Unknown owner')+(ph?' · <span style="font-family:monospace;font-size:11.5px;color:var(--dim)">'+ph+'</span>':'')+'</div>'+
-          '<div class="rm"><span class="bdg b-ap">'+fmtApptFull(a.d||a.date||'',a.time||'')+'</span></div>'+
-        '</div>'+
-      '</div>'+
-      '<div style="display:flex;gap:6px;flex-shrink:0">'+
-        (ph?'<a href="tel:'+ph+'" class="ibt gn" style="text-decoration:none;display:flex;align-items:center;justify-content:center;touch-action:manipulation">📞</a>':'<button class="ibt" style="opacity:.3" disabled>📞</button>')+
-        '<button class="ibt" style="touch-action:manipulation" onclick="showApptSMS('\''+aid+'\'')">💬</button>'+
-        '<button class="ibt" style="touch-action:manipulation" onclick="reschedM('\''+aid+'\'')">📅</button>'+
-      '</div>'+
-    '</div>'+
-  '</div>';
+  // Store data for retrieval
+  window._apptData=window._apptData||{};
+  window._apptData[aid]={p:ph,n:nm,a:addr,d:a.d||a.date||'',time:a.time||'',status:a.status};
+  var dot=a.status==='CONFIRMED'?'background:var(--green);box-shadow:0 0 5px var(--green)':'background:var(--red)';
+  var html='';
+  html+='<div class="sw" id="swa'+aid+'">';
+  html+='<div class="sw-acts">';
+  html+='<div class="sa sa-bl" onclick="apptDataSMS('+JSON.stringify(aid)+')"><span>💬</span>SMS</div>';
+  html+='<div class="sa sa-pu" onclick="reschedM('+JSON.stringify(aid)+')"><span>📅</span>Reschedule</div>';
+  html+='<div class="sa sa-gr" onclick="archAp('+JSON.stringify(aid)+')"><span>'+(a.archived?'↩️':'📦')+'</span>'+(a.archived?'Restore':'Archive')+'</div>';
+  html+='<div class="sa sa-rd" onclick="delAp('+JSON.stringify(aid)+')"><span>🗑️</span>Delete</div>';
+  html+='</div>';
+  html+='<div class="row" id="ar'+aid+'" style="opacity:'+op+'">';
+  html+='<div class="row-in" style="cursor:pointer" onclick="reschedM('+JSON.stringify(aid)+')">';
+  html+='<div style="width:9px;height:9px;border-radius:50%;flex-shrink:0;margin-top:6px;'+dot+'"></div>';
+  html+='<div style="flex:1;min-width:0;margin-left:10px">';
+  html+='<div class="rt">'+(addr||'Unknown address')+'</div>';
+  html+='<div class="rs">'+(nm||'Unknown owner')+(ph?' · <span style="font-family:monospace;font-size:11px;color:var(--dim)">'+ph+'</span>':'')+'</div>';
+  html+='<div class="rm"><span class="bdg b-ap">'+fmtApptFull(a.d||a.date||'',a.time||'')+'</span></div>';
+  html+='</div></div>';
+  html+='<div style="display:flex;gap:6px;flex-shrink:0">';
+  html+=(ph?'<a href="tel:'+ph+'" class="ibt gn" style="text-decoration:none;display:flex;align-items:center;justify-content:center;touch-action:manipulation">📞</a>':'<button class="ibt" style="opacity:.3" disabled>📞</button>');
+  html+='<button class="ibt" style="touch-action:manipulation" onclick="apptDataSMS('+JSON.stringify(aid)+')">💬</button>';
+  html+='<button class="ibt" style="touch-action:manipulation" onclick="reschedM('+JSON.stringify(aid)+')">📅</button>';
+  html+='</div>';
+  html+='</div></div>';
+  return html;
 }
+function apptDataSMS(aid){showApptSMS(aid);}
 function archAp(id){var a=gA().find(function(x){return String(x.id)===id;});if(a){a.archived=!a.archived;sA();toast(a.archived?'Archived':'Restored');rAppt();bdg();}}
 function delAp(id){if(!confirm('Delete this appointment?'))return;_appts=gA().filter(function(a){return String(a.id)!==id;});sA();toast('Deleted');rAppt();bdg();}
 function reschedM(id){var a=gA().find(function(x){return String(x.id)===id;});if(!a)return;var t=new Date().toISOString().split('T')[0];modal('<div class="sht"><div class="sht-h"></div><div class="sht-hdr"><div><div class="sht-ttl">📅 Reschedule</div><div class="sht-sub">'+(a.a||a.address||'')+'</div></div><button class="sht-x" onclick="cls()">✕</button></div><div class="sht-bd"><div class="frow"><div class="fg"><div class="fl">Date</div><input class="fi" id="rd" type="date" value="'+(a.d||a.date||t).split('T')[0]+'"></div><div class="fg"><div class="fl">Time</div><input class="fi" id="rt2" type="time" value="'+(a.time||'10:00')+'"></div></div><div class="fg"><div class="fl">Status</div><select class="fs" id="rs2"><option value="CONFIRMED"'+(a.status==='CONFIRMED'?' selected':'')+'>Confirmed</option><option value="CANCELLED"'+(a.status==='CANCELLED'?' selected':'')+'>Cancelled</option><option value="PENDING">Pending</option></select></div><div class="fg"><div class="fl">Notes</div><textarea class="fta" id="rn" style="min-height:70px">'+(a.notes||'')+'</textarea></div></div><div class="sht-ft"><button class="btn btn-gh" onclick="cls()">Cancel</button><button class="btn btn-gd" onclick="saveResch(\''+id+'\')">Save</button></div></div>');}
