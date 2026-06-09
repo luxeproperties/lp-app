@@ -609,8 +609,9 @@ function rHome(){
     '<div class="home-greeting">Good '+greeting()+', Alex 👋</div>'+
     '<div class="home-date">'+new Date().toLocaleDateString('en-AU',{weekday:'long',day:'numeric',month:'long'})+'</div>'+
     '<div class="home-callbar">'+
-      '<div class="home-callbar-left">📞 <span class="home-callbar-n">'+todCalls+'</span> calls today</div>'+
-      '<button class="home-callbar-btn" onclick="go(\'smart\')">Smart Calls →</button>'+
+      '<div style="flex:1"><div class="home-callbar-left">📞 Today: <span class="home-callbar-n">'+todCalls+'</span> · Total: '+gI().length+'</div>'+
+      '<div style="font-size:10px;opacity:.75;margin-top:1px">Interactions on this device</div></div>'+
+      '<button class="home-callbar-btn" style="touch-action:manipulation" onclick="go(\'smart\')">Smart Calls →</button>'+
     '</div>'+
   '</div>'+
   // STAT GRID
@@ -627,9 +628,11 @@ function rHome(){
     '<div class="qa-chip" onclick="go(\'bulk\')"><span>💬</span>Bulk SMS</div>'+
     '<div class="qa-chip" onclick="appraisalM()"><span>📅</span>Appraisal</div>'+
     '<div class="qa-chip" onclick="go(\'todo\')"><span>✅</span>To Do'+(todoCt?'<span class="qa-badge">'+todoCt+'</span>':'')+'</div>'+
+    '<div class="qa-chip" onclick="go(\'log\')"><span>📋</span>Call Log<span class="qa-badge" style="background:var(--teal);">'+gI().length+'</span></div>'+
     '<div class="qa-chip" onclick="addPropM()"><span>🏠</span>Add Property</div>'+
     '<div class="qa-chip" onclick="addContM()"><span>👤</span>Add Contact</div>'+
   '<div class="qa-chip" onclick="showPFSetup()"><span>🔑</span>Pricefinder</div>'+
+    '<div class="qa-chip" onclick="showSyncModal()"><span>🔄</span>Sync Data</div>'+
   '</div>'+
   // UPCOMING APPRAISALS
   '<div class="section-hdr"><span class="section-lbl">Upcoming Appraisals</span><button class="section-link" onclick="go(\'appt\')">See all →</button></div>'+
@@ -653,15 +656,12 @@ function rHome(){
     }).join('')+
   '</div>'+
   // RECENT ACTIVITY
-  (gI().length?
-  '<div class="section-hdr"><span class="section-lbl">Recent Activity</span><button class="section-link" onclick="go(\'log\')">All →</button></div>'+
-  '<div class="card-list">'+[...gI()].sort(function(a,b){return new Date(b.date)-new Date(a.date);}).slice(0,3).map(function(i){
-    return '<div class="act-row" onclick="'+(i.propertyId?'oProp('+i.propertyId+')':'')+'">'+
-      '<div class="act-ico">'+(i.type==='call'?'📞':i.type==='sms'?'💬':i.type==='email'?'✉️':'📝')+'</div>'+
-      '<div style="flex:1;min-width:0"><div class="rt" style="font-size:13px">'+((i.address||i.name)||'')+'</div>'+
-      '<div class="rm"><span class="bdg '+bc(i.outcome)+'" style="font-size:10px">'+(i.outcome||i.type)+'</span><span class="rtime">'+ago(i.date)+' ago</span></div></div>'+
-    '</div>';
-  }).join('')+'</div>':'')+'<div style="height:80px"></div>';
+  '<div class="section-hdr"><span class="section-lbl">Recent Activity</span>'+
+  (gI().length?'<button class="section-link" style="touch-action:manipulation" onclick="go(\'log\')">All '+gI().length+' →</button>':'')+
+  '</div>'+
+  (gI().length===0
+    ?'<div class="card-block" style="padding:14px 16px"><div style="display:flex;align-items:center;gap:12px;padding:4px 0"><div class="act-ico">📞</div><div style="flex:1;min-width:0"><div style="font-size:13px;color:var(--muted)">No interactions yet on this device</div><div style="font-size:12px;color:var(--dim);margin-top:2px">Log calls from any property · data is stored on each device separately</div></div><button class="btn-teal-sm" style="flex-shrink:0;touch-action:manipulation" onclick="go(\'smart\')">Start Calling</button></div></div>'
+    :'<div class="card-list">'+[...gI()].sort(function(a,b){return new Date(b.date)-new Date(a.date);}).slice(0,5).map(function(ix){return '<div class="act-row" onclick="'+(ix.propertyId?'oProp('+ix.propertyId+')':'')+'"><div class="act-ico">'+(ix.type==="call"?"📞":ix.type==="sms"?"💬":ix.type==="email"?"✉️":"📝")+'</div><div style="flex:1;min-width:0"><div class="rt" style="font-size:13px">'+((ix.address||ix.name)||"Unknown")+'</div><div class="rm"><span class="bdg '+bc(ix.outcome)+'" style="font-size:10px">'+(ix.outcome||ix.type)+'</span><span class="rtime">'+ago(ix.date)+' ago</span></div></div></div>';}).join('')+'</div>')+'<div style="height:80px"></div>';
 }
 
 function greeting(){var h=new Date().getHours();return h<12?'morning':h<17?'afternoon':'evening';}
@@ -1125,14 +1125,14 @@ function hRow(h,isA){
   window._hotData=window._hotData||{};
   window._hotData[hid]={p:h.p||h.phone||'',n:h.n||h.name||'',a:h.a||h.address||''};
   var avUrl=avatarUrl(h.n||h.name,'');
-  var open=pid?'oProp('+pid+')':'editHotM('+JSON.stringify(hid)+')';
+  var open=pid?'oProp('+pid+')':'editHotM('+'\''+hid+'\''+')';
   var html='';
   html+='<div class="sw" id="swh'+hid+'">';
   html+='<div class="sw-acts">';
   html+='<div class="sa sa-bl" onclick="'+open+'"><span>✏️</span>Edit</div>';
-  html+='<div class="sa sa-gn" onclick="hotCall('+JSON.stringify(hid)+','+(pid||'null')+')"><span>📞</span>Call</div>';
-  html+='<div class="sa sa-gr" onclick="archH('+JSON.stringify(hid)+')"><span>'+(isA?'↩️':'📦')+'</span>'+(isA?'Restore':'Archive')+'</div>';
-  html+='<div class="sa sa-rd" onclick="delH('+JSON.stringify(hid)+')"><span>🗑️</span>Del</div>';
+  html+='<div class="sa sa-gn" onclick="hotCall('+'\''+hid+'\''+','+(pid||'null')+')"><span>📞</span>Call</div>';
+  html+='<div class="sa sa-gr" onclick="archH('+'\''+hid+'\''+')"><span>'+(isA?'↩️':'📦')+'</span>'+(isA?'Restore':'Archive')+'</div>';
+  html+='<div class="sa sa-rd" onclick="delH('+'\''+hid+'\''+')"><span>🗑️</span>Del</div>';
   html+='</div>';
   html+='<div class="row" id="hr'+hid+'">';
   html+='<div class="row-in" style="cursor:pointer" onclick="'+open+'">';
@@ -1144,8 +1144,8 @@ function hRow(h,isA){
   html+='<div class="rm"><span class="bdg b-ht">'+(h.category||'HOT STOCK')+'</span><span style="font-family:monospace;font-size:11.5px;color:var(--dim)">'+(h.p||h.phone||'No phone')+'</span></div>';
   html+='</div></div>';
   html+='<div style="display:flex;flex-direction:column;gap:6px;flex-shrink:0">';
-  html+='<button class="ibt gn" onclick="hotCall('+JSON.stringify(hid)+','+(pid||'null')+')">📞</button>';
-  html+='<button class="ibt" onclick="hotSMS('+JSON.stringify(hid)+')">💬</button>';
+  html+='<button class="ibt gn" onclick="hotCall('+'\''+hid+'\''+','+(pid||'null')+')">📞</button>';
+  html+='<button class="ibt" onclick="hotSMS('+'\''+hid+'\''+')">💬</button>';
   html+='</div>';
   html+='</div></div>';
   return html;
@@ -1584,6 +1584,50 @@ function showPFSetup(){
   html+='</div></div>';
   modal(html);
 }
+function exportAllData(){
+  var data={li:localStorage.getItem('li')||'[]',la:localStorage.getItem('la')||'[]',lh:localStorage.getItem('lh')||'[]',lc:localStorage.getItem('lc')||'[]',ltd:localStorage.getItem('ltd')||'[]',lp:localStorage.getItem('lp')||'{}',sa:localStorage.getItem('sa')||'[]',sa_alts:localStorage.getItem('sa_alts')||'[]',exported:new Date().toISOString()};
+  var json=JSON.stringify(data,null,2);
+  var blob=new Blob([json],{type:'application/json'});
+  var url=URL.createObjectURL(blob);
+  var a=document.createElement('a');a.href=url;a.download='luxe-data-'+new Date().toISOString().split('T')[0]+'.json';
+  document.body.appendChild(a);a.click();document.body.removeChild(a);URL.revokeObjectURL(url);
+  toast('Exported ✓ — AirDrop or email to your phone');
+}
+function showSyncModal(){
+  var html='<div class="sht"><div class="sht-h"></div>';
+  html+='<div class="sht-hdr"><div><div class="sht-ttl">🔄 Sync Data</div><div class="sht-sub">Transfer call history between devices</div></div><button class="sht-x" onclick="cls()">✕</button></div>';
+  html+='<div class="sht-bd">';
+  html+='<div style="background:var(--blbg);border:1px solid var(--teal);border-radius:12px;padding:14px;margin-bottom:14px;font-size:13px;color:var(--text2);line-height:1.7">';
+  html+='📱 <strong>Laptop → Phone:</strong><br>1. On laptop tap Export Data<br>2. AirDrop or email the .json file to your phone<br>3. Open it, copy the text<br>4. Tap Import Data here and paste<br><br>';
+  html+='This device has: <strong>'+gI().length+' interactions · '+gA().filter(function(a){return!a.archived;}).length+' appts · '+gH().filter(function(h){return!h.archived;}).length+' hot list</strong>';
+  html+='</div>';
+  html+='<button class="btn btn-gd btn-fw" style="margin-bottom:10px;touch-action:manipulation" onclick="exportAllData();cls()">⬇ Export Data</button>';
+  html+='<button class="btn btn-bl btn-fw" style="touch-action:manipulation" onclick="cls();showImportData()">⬆ Import Data</button>';
+  html+='</div>';
+  html+='<div class="sht-ft"><button class="btn btn-gh btn-fw" onclick="cls()">Close</button></div></div>';
+  modal(html);
+}
+function showImportData(){
+  var html='<div class="sht"><div class="sht-h"></div>';
+  html+='<div class="sht-hdr"><div><div class="sht-ttl">⬆ Import Data</div><div class="sht-sub">Paste exported JSON to merge data</div></div><button class="sht-x" onclick="cls()">✕</button></div>';
+  html+='<div class="sht-bd"><div class="fg"><div class="fl">Paste JSON</div><textarea class="fta" id="imp-json" style="min-height:120px;font-family:monospace;font-size:12px" placeholder="Paste contents of exported .json file here…"></textarea></div></div>';
+  html+='<div class="sht-ft"><button class="btn btn-gh" onclick="cls()">Cancel</button><button class="btn btn-gd" style="touch-action:manipulation" onclick="doImportData()">Import & Merge</button></div></div>';
+  modal(html);
+}
+function doImportData(){
+  var el=document.getElementById('imp-json');
+  if(!el||!el.value.trim()){toast('Paste the JSON data first');return;}
+  try{
+    var d=JSON.parse(el.value);var merged=0;
+    if(d.li){var ei=gI();var eids=new Set(ei.map(function(x){return x.id;}));JSON.parse(d.li).forEach(function(x){if(!eids.has(x.id)){ei.push(x);merged++;}});sI();}
+    if(d.la){var ea=gA();var eaids=new Set(ea.map(function(x){return x.id;}));JSON.parse(d.la).forEach(function(x){if(!eaids.has(x.id)){ea.push(x);merged++;}});sA();}
+    if(d.lh){var eh=gH();var ehids=new Set(eh.map(function(x){return String(x.id);}));JSON.parse(d.lh).forEach(function(x){if(!ehids.has(String(x.id))){eh.push(x);merged++;}});sH();}
+    if(d.lc){var ec=gC();var ecids=new Set(ec.map(function(x){return x.id;}));JSON.parse(d.lc).forEach(function(x){if(!ecids.has(x.id)){ec.push(x);merged++;}});sC();}
+    _ix=null;_appts=null;_hot=null;_contacts=null;_todos=null;
+    cls();toast('Imported '+merged+' records ✓');bdg();if(S.pg==='home')rHome();
+  }catch(e){toast('Invalid data — check format');console.log(e);}
+}
+
 window.addEventListener('DOMContentLoaded',function(){
   mergeCsvData();
   rTB();
