@@ -1301,13 +1301,13 @@ function aRow(a,op){
   var addr=a.a||a.address||'';
   return '<div class="sw" id="swa'+aid+'">'+
     '<div class="sw-acts">'+
-      '<div class="sa sa-bl" onclick="showApptSMS(''+aid+'')"><span>💬</span>SMS</div>'+
-      '<div class="sa sa-pu" onclick="reschedM(''+aid+'')"><span>📅</span>Reschedule</div>'+
-      '<div class="sa sa-gr" onclick="archAp(''+aid+'')"><span>'+(a.archived?'↩️':'📦')+'</span>'+(a.archived?'Restore':'Archive')+'</div>'+
-      '<div class="sa sa-rd" onclick="delAp(''+aid+'')"><span>🗑️</span>Delete</div>'+
+      '<div class="sa sa-bl" onclick="showApptSMS('\''+aid+'\'')"><span>💬</span>SMS</div>'+
+      '<div class="sa sa-pu" onclick="reschedM('\''+aid+'\'')"><span>📅</span>Reschedule</div>'+
+      '<div class="sa sa-gr" onclick="archAp('\''+aid+'\'')"><span>'+(a.archived?'↩️':'📦')+'</span>'+(a.archived?'Restore':'Archive')+'</div>'+
+      '<div class="sa sa-rd" onclick="delAp('\''+aid+'\'')"><span>🗑️</span>Delete</div>'+
     '</div>'+
     '<div class="row" id="ar'+aid+'" style="opacity:'+op+'">'+
-      '<div class="row-in" style="cursor:pointer" onclick="reschedM(''+aid+'')">'+
+      '<div class="row-in" style="cursor:pointer" onclick="reschedM('\''+aid+'\'')">'+
         '<div style="width:9px;height:9px;border-radius:50%;flex-shrink:0;margin-top:6px;'+(a.status==='CONFIRMED'?'background:var(--green);box-shadow:0 0 5px var(--green)':'background:var(--red)')+'"></div>'+
         '<div style="flex:1;min-width:0;margin-left:10px">'+
           '<div class="rt">'+(addr||'Unknown address')+'</div>'+
@@ -1317,8 +1317,8 @@ function aRow(a,op){
       '</div>'+
       '<div style="display:flex;gap:6px;flex-shrink:0">'+
         (ph?'<a href="tel:'+ph+'" class="ibt gn" style="text-decoration:none;display:flex;align-items:center;justify-content:center;touch-action:manipulation">📞</a>':'<button class="ibt" style="opacity:.3" disabled>📞</button>')+
-        '<button class="ibt" style="touch-action:manipulation" onclick="showApptSMS(''+aid+'')">💬</button>'+
-        '<button class="ibt" style="touch-action:manipulation" onclick="reschedM(''+aid+'')">📅</button>'+
+        '<button class="ibt" style="touch-action:manipulation" onclick="showApptSMS('\''+aid+'\'')">💬</button>'+
+        '<button class="ibt" style="touch-action:manipulation" onclick="reschedM('\''+aid+'\'')">📅</button>'+
       '</div>'+
     '</div>'+
   '</div>';
