@@ -1959,6 +1959,28 @@ function showPFSetup(){
   html+='</div></div>';
   modal(html);
 }
+
+
+/* ── INIT ── */
+window.addEventListener('DOMContentLoaded',function(){
+  // Auto-set Pricefinder key if not already set
+  if(!localStorage.getItem('pf_token')){
+    localStorage.setItem('pf_token','zPlfZYr_bxA');
+    PF_TOKEN='zPlfZYr_bxA';
+  } else {
+    PF_TOKEN=localStorage.getItem('pf_token');
+  }
+  // Auto-set Domain API key if not already set
+  if(!localStorage.getItem('dm_token')){
+    localStorage.setItem('dm_token','ykey_e3ad7f9132b55cd196bb10ecb8e9b962');
+    DOMAIN_TOKEN='ykey_e3ad7f9132b55cd196bb10ecb8e9b962';
+  } else {
+    DOMAIN_TOKEN=localStorage.getItem('dm_token');
+  }
+  mergeCsvData();
+  rTB();
+  go('home');
+});
 </script>
 </body>
 </html>
