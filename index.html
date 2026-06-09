@@ -467,6 +467,26 @@ function fmtPh(ph){
 }
 
 /* ── DATE HELPERS ── */
+function addrSlug(addr){
+  if(!addr)return '';
+  var s=String(addr).toLowerCase();
+  s=s.replace(/,/g,'');
+  // Ensure 'vic' is in the address before any postcode
+  if(!/\bvic\b/.test(s)){
+    if(/\b\d{4}\b/.test(s)){
+      s=s.replace(/\s+(\d{4})\b/,' vic $1');
+    } else {
+      s=s+' vic';
+    }
+  }
+  s=s.replace(/\s+/g,'-');
+  s=s.replace(/[^a-z0-9\-]/g,'');
+  s=s.replace(/-+/g,'-');
+  s=s.replace(/^-|-$/g,'');
+  return s;
+}
+
+
 function parseApptDate(raw){
   if(!raw)return null;
   try{
@@ -940,12 +960,20 @@ function detTabContent(p,tab,pix,sub,isH){
       '</div>'+
     '</div>';
 
-    // EXTERNAL LOOKUP LINKS - one tap to view full property details on major sites
-    var lookupRow='<div style="display:flex;gap:6px;margin-bottom:14px;overflow-x:auto;-webkit-overflow-scrolling:touch">'+
-      '<a href="https://www.domain.com.au/property-profile/'+addrShort+'-vic" target="_blank" style="flex-shrink:0;background:var(--card2);border:1px solid var(--border);border-radius:10px;padding:8px 12px;font-size:12px;font-weight:700;color:var(--text);text-decoration:none;touch-action:manipulation">🏠 Domain</a>'+
-      '<a href="https://www.realestate.com.au/sold/in-'+addrShort+'/list-1" target="_blank" style="flex-shrink:0;background:var(--card2);border:1px solid var(--border);border-radius:10px;padding:8px 12px;font-size:12px;font-weight:700;color:var(--text);text-decoration:none;touch-action:manipulation">🏘 REA</a>'+
-      '<a href="https://www.onthehouse.com.au/property/vic/'+addrShort+'" target="_blank" style="flex-shrink:0;background:var(--card2);border:1px solid var(--border);border-radius:10px;padding:8px 12px;font-size:12px;font-weight:700;color:var(--text);text-decoration:none;touch-action:manipulation">📊 On The House</a>'+
-      '<a href="https://www.propertyvalue.com.au/search?q='+addrEnc+'" target="_blank" style="flex-shrink:0;background:var(--card2);border:1px solid var(--border);border-radius:10px;padding:8px 12px;font-size:12px;font-weight:700;color:var(--text);text-decoration:none;touch-action:manipulation">💰 PropertyValue</a>'+
+    // EXTERNAL LOOKUP LINKS — each takes you directly to that property on the site
+    var slug=addrSlug(p.a||'');
+    var fullAddr=encodeURIComponent((p.a||'')+' Australia');
+    var quotedAddr=encodeURIComponent('"'+(p.a||'').replace(/,/g,'').trim()+'"');
+    var domainUrl='https://www.domain.com.au/property-profile/'+slug;
+    var reaUrl='https://www.realestate.com.au/property/'+slug;
+    var othUrl='https://www.google.com/search?q=site%3Aonthehouse.com.au+'+quotedAddr;
+    var pvUrl='https://www.google.com/search?q=site%3Apropertyvalue.com.au+'+quotedAddr;
+    var linkStyle='flex-shrink:0;background:var(--card2);border:1px solid var(--border);border-radius:10px;padding:9px 14px;font-size:12px;font-weight:700;color:var(--text);text-decoration:none;touch-action:manipulation;display:inline-flex;align-items:center;gap:5px';
+    var lookupRow='<div style="display:flex;gap:6px;margin-bottom:14px;overflow-x:auto;-webkit-overflow-scrolling:touch;padding-bottom:4px">'+
+      '<a href="'+domainUrl+'" target="_blank" rel="noopener" style="'+linkStyle+'">🏠 Domain</a>'+
+      '<a href="'+reaUrl+'" target="_blank" rel="noopener" style="'+linkStyle+'">🏘 REA</a>'+
+      '<a href="'+othUrl+'" target="_blank" rel="noopener" style="'+linkStyle+'">📊 On The House</a>'+
+      '<a href="'+pvUrl+'" target="_blank" rel="noopener" style="'+linkStyle+'">💰 PropertyValue</a>'+
     '</div>';
 
     // Try Domain API if connected (free tier)
