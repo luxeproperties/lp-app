@@ -1449,14 +1449,17 @@ function aRow(a,op){
   if(a.archived){
     dot='background:var(--dim)';
   } else if(a.status!=='CONFIRMED'){
-    dot='background:var(--red);box-shadow:0 0 6px var(--red)';
+    dot='background:#F59E0B;box-shadow:0 0 6px #F59E0B';
+    rowBg='background:var(--card);border-left:3px solid #F59E0B;padding-left:13px';
   } else if(isUpcoming){
     // UPCOMING = RED (per Alex's request - high attention)
     dot='background:#EF4444;box-shadow:0 0 8px rgba(239,68,68,.6)';
-    rowBg='background:linear-gradient(90deg,rgba(239,68,68,.04) 0%,transparent 60%);border-left:3px solid #EF4444';
+    // SOLID card background + red left border - keeps swipe actions hidden
+    rowBg='background:var(--card);border-left:3px solid #EF4444;padding-left:13px';
   } else {
     // PAST CONFIRMED = green
     dot='background:var(--green);box-shadow:0 0 5px var(--green)';
+    rowBg='background:var(--card)';
   }
   var html='';
   html+='<div class="sw" id="swa'+aid+'">';
