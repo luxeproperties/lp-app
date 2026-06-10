@@ -1966,7 +1966,27 @@ function togHot(id){
 /* ── CALL MODAL ── */
 function callM(ph,nm,ad,pid){ph=fmtPh(($('call-ph')&&$('call-ph').value)||ph)||ph;modal('<div class="sht"><div class="sht-h"></div><div class="sht-hdr"><div><div class="sht-ttl">📞 Log Call</div><div class="sht-sub">'+(ad||nm||'')+'</div></div><button class="sht-x" onclick="cls()">✕</button></div><div class="sht-bd"><div class="fg" style="margin-bottom:12px"><div class="fl">Phone Number <span style="font-weight:400;text-transform:none;letter-spacing:0;color:var(--dim)">— tap to edit</span></div><div style="display:flex;gap:8px;align-items:center"><input class="fi" id="call-ph" type="tel" value="'+(ph||'')+'" placeholder="04XX XXX XXX" style="flex:1;font-size:17px;font-weight:600" oninput="var d=document.getElementById(\'call-dial\');if(d)d.href=\'tel:\'+this.value">'+(ph?'<a id="call-dial" href="tel:'+ph+'" class="btn btn-gn btn-sm" style="flex-shrink:0;text-decoration:none;white-space:nowrap">📞 Call</a>':'<a id="call-dial" href="tel:" class="btn btn-gn btn-sm" style="flex-shrink:0;text-decoration:none;white-space:nowrap;opacity:.4">📞 Call</a>')+'</div></div>'+(!ph?'<div style="background:var(--ambg);border:1px solid var(--amber);border-radius:12px;padding:10px 14px;font-size:13px;color:var(--amber);margin-bottom:12px">⚠️ No phone on file — enter above</div>':'')+'<div class="fg"><div class="fl">Outcome</div><div class="oc-g">'+'[["voicemail","📵","Voicemail"],["no_answer","🔕","No Answer"],["connected","✅","Connected"],["interested","⭐","Interested"],["not_interested","✗","Not Int."],["callback","🔄","Callback"],["appointment","📅","Booked"],["hung_up","📴","Hung Up"],["wrong_number","❌","Wrong No."]]'.split('],[').map(function(x){var f=x.replace(/^\[|\]$/g,'').split(',');var v=f[0].replace(/"/g,''),ic=f[1].replace(/"/g,''),lb=f[2].replace(/"/g,'');return'<div class="oc'+(v==='voicemail'?' on':'')+'" id="oc'+v+'" onclick="pickOc(\''+v+'\')"><span class="oc-i">'+ic+'</span><span class="oc-l">'+lb+'</span></div>';}).join('')+'</div></div><div class="fg"><div class="fl">Notes</div><textarea class="fta" id="cn" placeholder="What did they say?" style="min-height:80px"></textarea></div><div class="fg"><div class="fl">Next Action</div><input class="fi" id="cnx" placeholder="e.g. Call back in 2 weeks…"></div></div><div class="sht-ft"><button class="btn btn-gh" onclick="cls()">Cancel</button><button class="btn btn-gd" onclick="saveCall(\''+esc(ph||'')+'\',\''+esc(nm||'')+'\',\''+esc(ad||'')+'\','+(pid||'null')+')">Save</button></div></div>');window._oc='voicemail';}
 window.pickOc=function(v){document.querySelectorAll('.oc').forEach(function(e){e.classList.remove('on');});var e=$('oc'+v);if(e)e.classList.add('on');window._oc=v;};
-function saveCall(ph,nm,ad,pid){var realPh=fmtPh(($('call-ph')&&$('call-ph').value)||ph)||ph;var oc=window._oc||'voicemail',nt=$('cn').value,nx=$('cnx').value;gI().push({id:Date.now(),type:'call',propertyId:pid,address:ad,name:nm,phone:realPh,outcome:oc,notes:nt+(nx?'\nNext: '+nx:''),date:new Date().toISOString()});sI();if(pid){var p=gP().find(function(x){return x.id===pid;});if(p){p.status=oc;p.lastContact=new Date().toISOString();if(nt)p.no=nt;sP();}}cls();toast('Call logged · '+oc.replace(/_/g,' '));if(S.pg==='pdet')rPDet();
+function saveCall(ph,nm,ad,pid){var realPh=fmtPh(($('call-ph')&&$('call-ph').value)||ph)||ph;var oc=window._oc||'voicemail',nt=$('cn').value,nx=$('cnx').value;gI().push({id:Date.now(),type:'call',propertyId:pid,address:ad,name:nm,phone:realPh,outcome:oc,notes:nt+(nx?'\nNext: '+nx:''),date:new Date().toISOString()});sI();if(pid){
+    var p=gP().find(function(x){return x.id===pid;});
+    if(p){
+      var prevHot=p.isHot||gH().some(function(h){return h.a===p.a&&!h.archived;});
+      p.status=oc;
+      p.lastContact=new Date().toISOString();
+      if(nt)p.no=nt;
+      // If moving to pipeline (callback), remove from hot list automatically
+      if(oc==='callback'&&prevHot){
+        var hl=gH();
+        var hidx=hl.findIndex(function(h){return h.a===p.a&&!h.archived;});
+        if(hidx>=0){
+          hl.splice(hidx,1);
+          sH();
+        }
+        p.isHot=false;
+        setTimeout(function(){toast('Moved from Hot List to Pipeline');},900);
+      }
+      sP();
+    }
+  }cls();toast('Call logged · '+oc.replace(/_/g,' '));if(S.pg==='pdet')rPDet();
   else if(S.pg==='smart')rSmart();
   else if(S.pg==='home')rHome();
   else if(S.pg==='props')rProps();
@@ -1983,7 +2003,24 @@ function sendEmail(nm,ad,pid){window.open('mailto:'+$('eto').value+'?subject='+e
 
 /* ── NOTE ── */
 function openNote(pid){var p=gP().find(function(x){return x.id===pid;});modal('<div class="sht"><div class="sht-h"></div><div class="sht-hdr"><div><div class="sht-ttl">📝 Note</div><div class="sht-sub">'+(p&&p.a||'')+'</div></div><button class="sht-x" onclick="cls()">✕</button></div><div class="sht-bd"><div class="fg"><div class="fl">Note</div><textarea class="fta" id="ntxt" style="min-height:120px" placeholder="Add details…">'+(p&&p.no||'')+'</textarea></div><div class="fg"><div class="fl">Status</div><select class="fs" id="nst">'+sopts(p&&p.status)+'</select></div></div><div class="sht-ft"><button class="btn btn-gh" onclick="cls()">Cancel</button><button class="btn btn-gd" onclick="saveNote('+pid+')">Save</button></div></div>');}
-function saveNote(pid){var p=gP().find(function(x){return x.id===pid;});if(!p)return;p.no=$('ntxt').value;p.status=$('nst').value;sP();gI().push({id:Date.now(),type:'note',propertyId:pid,address:p.a,name:p.n,outcome:'noted',notes:p.no,date:new Date().toISOString()});sI();cls();toast('Note saved ✓');if(S.pg==='pdet')rPDet();}
+function saveNote(pid){
+  var p=gP().find(function(x){return x.id===pid;});
+  if(!p)return;
+  var prevHot=p.isHot||gH().some(function(h){return h.a===p.a&&!h.archived;});
+  p.no=$('ntxt').value;
+  p.status=$('nst').value;
+  // If status changed to callback (pipeline) and property was hot, remove from hot list
+  if(p.status==='callback'&&prevHot){
+    var hl=gH();
+    var hidx=hl.findIndex(function(h){return h.a===p.a&&!h.archived;});
+    if(hidx>=0){
+      hl.splice(hidx,1);
+      sH();
+    }
+    p.isHot=false;
+    setTimeout(function(){toast('Moved from Hot List to Pipeline');},900);
+  }
+  sP();gI().push({id:Date.now(),type:'note',propertyId:pid,address:p.a,name:p.n,outcome:'noted',notes:p.no,date:new Date().toISOString()});sI();cls();toast('Note saved ✓');if(S.pg==='pdet')rPDet();}
 
 /* ── UTILS ── */
 function modal(html){var d=document.createElement('div');d.className='ov';d.id='mod';d.innerHTML=html;d.addEventListener('click',function(e){if(e.target===d)cls();});document.body.appendChild(d);}
