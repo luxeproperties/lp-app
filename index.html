@@ -1267,42 +1267,83 @@ function rAppt(){
   var all=gA();
   var ac=all.filter(function(a){return!a.archived;});
   var today=new Date();today.setHours(0,0,0,0);
-  // Sort by date asc - upcoming first
-  var sortByDate=function(a,b){
+  var sortByDateAsc=function(a,b){
     var pa=parseApptDate(a.d||a.date||'')||new Date(0);
     var pb=parseApptDate(b.d||b.date||'')||new Date(0);
     return pa-pb;
   };
-  var cf=ac.filter(function(a){return a.status==='CONFIRMED';}).sort(sortByDate);
+  var sortByDateDesc=function(a,b){return sortByDateAsc(b,a);};
+  var cf=ac.filter(function(a){return a.status==='CONFIRMED';}).sort(sortByDateAsc);
   var upcoming=cf.filter(function(a){var d=parseApptDate(a.d||a.date||'');return!d||isNaN(d)||d>=today;});
-  var past=cf.filter(function(a){var d=parseApptDate(a.d||a.date||'');return d&&!isNaN(d)&&d<today;}).reverse();
-  var cx=ac.filter(function(a){return a.status!=='CONFIRMED';}).sort(sortByDate);
-  var ar=all.filter(function(a){return a.archived;});
+  var past=cf.filter(function(a){var d=parseApptDate(a.d||a.date||'');return d&&!isNaN(d)&&d<today;}).sort(sortByDateDesc);
+  var cx=ac.filter(function(a){return a.status!=='CONFIRMED';}).sort(sortByDateAsc);
+  var ar=all.filter(function(a){return a.archived;}).sort(sortByDateDesc);
 
-  $('scr').innerHTML=
-  // STATS HEADER
-  '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;padding:14px">'+
-    '<div style="background:var(--gnbg);border:1px solid var(--green);border-radius:14px;padding:12px"><div style="font-size:9px;font-weight:700;color:var(--green);text-transform:uppercase;letter-spacing:1.3px;margin-bottom:4px">Upcoming</div><div class="pf" style="font-size:24px;color:var(--text)">'+upcoming.length+'</div></div>'+
-    '<div style="background:var(--card2);border:1px solid var(--border);border-radius:14px;padding:12px"><div style="font-size:9px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:1.3px;margin-bottom:4px">Past</div><div class="pf" style="font-size:24px;color:var(--text)">'+past.length+'</div></div>'+
-    '<div style="background:var(--rdbg);border:1px solid var(--red);border-radius:14px;padding:12px"><div style="font-size:9px;font-weight:700;color:var(--red);text-transform:uppercase;letter-spacing:1.3px;margin-bottom:4px">Cancelled</div><div class="pf" style="font-size:24px;color:var(--text)">'+cx.length+'</div></div>'+
-  '</div>'+
+  // Filter state (default to upcoming)
+  if(!S.apptFilt)S.apptFilt='upcoming';
+  var filt=S.apptFilt;
+
+  // STAT TILES (clickable filter buttons)
+  var html='<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;padding:14px">';
+  // Upcoming - RED accent
+  html+='<div onclick="S.apptFilt=\'upcoming\';rAppt()" style="touch-action:manipulation;cursor:pointer;border-radius:14px;padding:12px;border:1.5px solid #EF4444;'+
+    (filt==='upcoming'?'background:linear-gradient(135deg,#EF4444 0%,#DC2626 100%);box-shadow:0 4px 10px rgba(239,68,68,.3)':'background:rgba(239,68,68,.06)')+'">'+
+    '<div style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:1.3px;margin-bottom:4px;color:'+(filt==='upcoming'?'#fff':'#EF4444')+'">Upcoming</div>'+
+    '<div class="pf" style="font-size:24px;color:'+(filt==='upcoming'?'#fff':'var(--text)')+'">'+upcoming.length+'</div></div>';
+  // Past
+  html+='<div onclick="S.apptFilt=\'past\';rAppt()" style="touch-action:manipulation;cursor:pointer;border-radius:14px;padding:12px;border:1.5px solid var(--border);'+
+    (filt==='past'?'background:var(--text);color:var(--bg)':'background:var(--card2)')+'">'+
+    '<div style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:1.3px;margin-bottom:4px;color:'+(filt==='past'?'var(--bg)':'var(--muted)')+'">Past</div>'+
+    '<div class="pf" style="font-size:24px;color:'+(filt==='past'?'var(--bg)':'var(--text)')+'">'+past.length+'</div></div>';
+  // Cancelled
+  html+='<div onclick="S.apptFilt=\'cancelled\';rAppt()" style="touch-action:manipulation;cursor:pointer;border-radius:14px;padding:12px;border:1.5px solid var(--amber);'+
+    (filt==='cancelled'?'background:linear-gradient(135deg,var(--amber) 0%,#D97706 100%)':'background:var(--ambg)')+'">'+
+    '<div style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:1.3px;margin-bottom:4px;color:'+(filt==='cancelled'?'#fff':'var(--amber)')+'">Cancelled</div>'+
+    '<div class="pf" style="font-size:24px;color:'+(filt==='cancelled'?'#fff':'var(--text)')+'">'+cx.length+'</div></div>';
+  html+='</div>';
+
   // ACTIONS
-  '<div style="padding:0 14px 10px;display:flex;gap:8px">'+
+  html+='<div style="padding:0 14px 12px;display:flex;gap:8px">'+
     '<button class="btn btn-gd" style="flex:2;touch-action:manipulation" onclick="appraisalM()">+ New Appraisal</button>'+
     '<button class="btn btn-bl" style="flex:1;font-size:12.5px;touch-action:manipulation" onclick="showCalendarSync()">📆 Sync</button>'+
-  '</div>'+
-  // UPCOMING (most prominent)
-  '<div class="sticky-hdr">📅 Upcoming ('+upcoming.length+')</div>'+
-  (upcoming.length===0
-    ?'<div style="padding:24px 16px;text-align:center;background:var(--card)"><div style="font-size:34px;margin-bottom:8px">📅</div><div style="font-size:14px;font-weight:600;color:var(--text);margin-bottom:6px">No upcoming appraisals</div><div style="font-size:12px;color:var(--dim);margin-bottom:14px">Book your next one to start the pipeline</div><button class="btn btn-gd" style="touch-action:manipulation" onclick="appraisalM()">+ Book Appraisal</button></div>'
-    :upcoming.map(function(a){return aRow(a,1);}).join(''))+
-  // PAST (collapsed look)
-  (past.length?'<div class="sticky-hdr" style="margin-top:6px;opacity:.7">Past ('+past.length+')</div>'+past.slice(0,10).map(function(a){return aRow(a,.7);}).join(''):'')+
-  // CANCELLED/PENDING
-  (cx.length?'<div class="sticky-hdr" style="margin-top:6px">Cancelled/Pending ('+cx.length+')</div>'+cx.map(function(a){return aRow(a,.6);}).join(''):'')+
-  // ARCHIVED
-  (ar.length?'<div class="sticky-hdr" style="margin-top:6px;opacity:.55">Archived ('+ar.length+')</div><div style="opacity:.45">'+ar.map(function(a){return aRow(a,.45);}).join('')+'</div>':'')+
-  '<div style="height:80px"></div>';
+  '</div>';
+
+  // FILTERED LIST
+  var list,label,emptyMsg,emptyCTA;
+  if(filt==='upcoming'){
+    list=upcoming;label='📅 Upcoming Appraisals';
+    emptyMsg='No upcoming appraisals';
+    emptyCTA='<button class="btn btn-gd" style="margin-top:14px;touch-action:manipulation" onclick="appraisalM()">+ Book Appraisal</button>';
+  } else if(filt==='past'){
+    list=past;label='Past Appraisals';
+    emptyMsg='No past appraisals yet';
+    emptyCTA='';
+  } else {
+    list=cx;label='Cancelled / Pending';
+    emptyMsg='No cancelled or pending appraisals';
+    emptyCTA='';
+  }
+
+  html+='<div class="sticky-hdr">'+label+' ('+list.length+')</div>';
+  if(list.length===0){
+    html+='<div style="padding:30px 16px;text-align:center;background:var(--card)">'+
+      '<div style="font-size:38px;margin-bottom:10px;opacity:.6">📅</div>'+
+      '<div style="font-size:14px;font-weight:600;color:var(--text);margin-bottom:4px">'+emptyMsg+'</div>'+
+      '<div style="font-size:12px;color:var(--dim)">Tap the tiles above to switch view</div>'+
+      emptyCTA+
+    '</div>';
+  } else {
+    html+=list.map(function(a){return aRow(a,filt==='past'?.75:1);}).join('');
+  }
+
+  // Archived (always at bottom if any exist)
+  if(ar.length){
+    html+='<div class="sticky-hdr" style="margin-top:14px;opacity:.55">Archived ('+ar.length+')</div>'+
+      '<div style="opacity:.5">'+ar.slice(0,10).map(function(a){return aRow(a,.5);}).join('')+'</div>';
+  }
+
+  html+='<div style="height:80px"></div>';
+  $('scr').innerHTML=html;
   setTimeout(swipes,80);
 }
 function apptSMS(aid){
@@ -1398,27 +1439,46 @@ function aRow(a,op){
   // Store data for retrieval
   window._apptData=window._apptData||{};
   window._apptData[aid]={p:ph,n:nm,a:addr,d:a.d||a.date||'',time:a.time||'',status:a.status};
-  var dot=a.status==='CONFIRMED'?'background:var(--green);box-shadow:0 0 5px var(--green)':'background:var(--red)';
+  // Determine row color based on status + date
+  var today=new Date();today.setHours(0,0,0,0);
+  var apptD=parseApptDate(a.d||a.date||'');
+  var isUpcoming=a.status==='CONFIRMED'&&!a.archived&&(!apptD||apptD>=today);
+  var isPast=a.status==='CONFIRMED'&&apptD&&apptD<today;
+  var dot='';
+  var rowBg='';
+  if(a.archived){
+    dot='background:var(--dim)';
+  } else if(a.status!=='CONFIRMED'){
+    dot='background:var(--red);box-shadow:0 0 6px var(--red)';
+  } else if(isUpcoming){
+    // UPCOMING = RED (per Alex's request - high attention)
+    dot='background:#EF4444;box-shadow:0 0 8px rgba(239,68,68,.6)';
+    rowBg='background:linear-gradient(90deg,rgba(239,68,68,.04) 0%,transparent 60%);border-left:3px solid #EF4444';
+  } else {
+    // PAST CONFIRMED = green
+    dot='background:var(--green);box-shadow:0 0 5px var(--green)';
+  }
   var html='';
   html+='<div class="sw" id="swa'+aid+'">';
   html+='<div class="sw-acts">';
-  html+='<div class="sa sa-bl" onclick="apptDataSMS('+JSON.stringify(aid)+')"><span>💬</span>SMS</div>';
-  html+='<div class="sa sa-pu" onclick="reschedM('+JSON.stringify(aid)+')"><span>📅</span>Reschedule</div>';
-  html+='<div class="sa sa-gr" onclick="archAp('+JSON.stringify(aid)+')"><span>'+(a.archived?'↩️':'📦')+'</span>'+(a.archived?'Restore':'Archive')+'</div>';
-  html+='<div class="sa sa-rd" onclick="delAp('+JSON.stringify(aid)+')"><span>🗑️</span>Delete</div>';
+  // FIX: use single quotes \' inside double-quote onclick attribute instead of JSON.stringify
+  html+='<div class="sa sa-bl" onclick="apptDataSMS(\''+aid+'\')"><span>💬</span>SMS</div>';
+  html+='<div class="sa sa-pu" onclick="reschedM(\''+aid+'\')"><span>📅</span>Reschedule</div>';
+  html+='<div class="sa sa-gr" onclick="archAp(\''+aid+'\')"><span>'+(a.archived?'↩️':'📦')+'</span>'+(a.archived?'Restore':'Archive')+'</div>';
+  html+='<div class="sa sa-rd" onclick="delAp(\''+aid+'\')"><span>🗑️</span>Delete</div>';
   html+='</div>';
-  html+='<div class="row" id="ar'+aid+'" style="opacity:'+op+'">';
-  html+='<div class="row-in" style="cursor:pointer" onclick="reschedM('+JSON.stringify(aid)+')">';
-  html+='<div style="width:9px;height:9px;border-radius:50%;flex-shrink:0;margin-top:6px;'+dot+'"></div>';
+  html+='<div class="row" id="ar'+aid+'" style="opacity:'+op+';'+rowBg+'">';
+  html+='<div class="row-in" style="cursor:pointer" onclick="reschedM(\''+aid+'\')">';
+  html+='<div style="width:10px;height:10px;border-radius:50%;flex-shrink:0;margin-top:7px;'+dot+'"></div>';
   html+='<div style="flex:1;min-width:0;margin-left:10px">';
   html+='<div class="rt">'+(addr||'Unknown address')+'</div>';
   html+='<div class="rs">'+(nm||'Unknown owner')+(ph?' · <span style="font-family:monospace;font-size:11px;color:var(--dim)">'+ph+'</span>':'')+'</div>';
-  html+='<div class="rm"><span class="bdg b-ap">'+fmtApptFull(a.d||a.date||'',a.time||'')+'</span></div>';
+  html+='<div class="rm"><span class="bdg" style="background:'+(isUpcoming?'rgba(239,68,68,.15);color:#EF4444;border:1px solid rgba(239,68,68,.4)':isPast?'var(--card2);color:var(--muted);border:1px solid var(--border)':'var(--ambg);color:var(--amber);border:1px solid var(--amber)')+';font-weight:700">'+fmtApptFull(a.d||a.date||'',a.time||'')+'</span></div>';
   html+='</div></div>';
   html+='<div style="display:flex;gap:6px;flex-shrink:0">';
   html+=(ph?'<a href="tel:'+ph+'" class="ibt gn" style="text-decoration:none;display:flex;align-items:center;justify-content:center;touch-action:manipulation">📞</a>':'<button class="ibt" style="opacity:.3" disabled>📞</button>');
-  html+='<button class="ibt" style="touch-action:manipulation" onclick="apptDataSMS('+JSON.stringify(aid)+')">💬</button>';
-  html+='<button class="ibt" style="touch-action:manipulation" onclick="reschedM('+JSON.stringify(aid)+')">📅</button>';
+  html+='<button class="ibt" style="touch-action:manipulation" onclick="apptDataSMS(\''+aid+'\')">💬</button>';
+  html+='<button class="ibt bl" style="touch-action:manipulation" onclick="showAddToCal(\''+aid+'\')">📆</button>';
   html+='</div>';
   html+='</div></div>';
   return html;
@@ -1429,6 +1489,89 @@ function delAp(id){if(!confirm('Delete this appointment?'))return;_appts=gA().fi
 function reschedM(id){var a=gA().find(function(x){return String(x.id)===id;});if(!a)return;var t=new Date().toISOString().split('T')[0];modal('<div class="sht"><div class="sht-h"></div><div class="sht-hdr"><div><div class="sht-ttl">📅 Reschedule</div><div class="sht-sub">'+(a.a||a.address||'')+'</div></div><button class="sht-x" onclick="cls()">✕</button></div><div class="sht-bd"><div class="frow"><div class="fg"><div class="fl">Date</div><input class="fi" id="rd" type="date" value="'+(a.d||a.date||t).split('T')[0]+'"></div><div class="fg"><div class="fl">Time</div><input class="fi" id="rt2" type="time" value="'+(a.time||'10:00')+'"></div></div><div class="fg"><div class="fl">Status</div><select class="fs" id="rs2"><option value="CONFIRMED"'+(a.status==='CONFIRMED'?' selected':'')+'>Confirmed</option><option value="CANCELLED"'+(a.status==='CANCELLED'?' selected':'')+'>Cancelled</option><option value="PENDING">Pending</option></select></div><div class="fg"><div class="fl">Notes</div><textarea class="fta" id="rn" style="min-height:70px">'+(a.notes||'')+'</textarea></div></div><div class="sht-ft"><button class="btn btn-gh" onclick="cls()">Cancel</button><button class="btn btn-gd" onclick="saveResch(\''+id+'\')">Save</button></div></div>');}
 function saveResch(id){var a=gA().find(function(x){return String(x.id)===id;});if(!a)return;a.d=$('rd').value;a.time=$('rt2').value;a.status=$('rs2').value;a.notes=$('rn').value;sA();cls();toast('Updated ✓');if(S.pg==='appt')rAppt();else if(S.pg==='home')rHome();}
 
+
+function downloadICS(appt){
+  var d=parseApptDate(appt.d||appt.date||'');
+  if(!d||isNaN(d)){toast('Invalid date');return;}
+  var time=appt.time||'10:00';
+  var parts=(time+':00').split(':').map(Number);
+  var start=new Date(d);start.setHours(parts[0],parts[1],0,0);
+  var end=new Date(start);end.setHours(start.getHours()+1);
+  var fmt=function(dt){
+    return dt.getUTCFullYear()+
+      String(dt.getUTCMonth()+1).padStart(2,'0')+
+      String(dt.getUTCDate()).padStart(2,'0')+'T'+
+      String(dt.getUTCHours()).padStart(2,'0')+
+      String(dt.getUTCMinutes()).padStart(2,'0')+'00Z';
+  };
+  var esc=function(s){return(s||'').replace(/\\/g,'\\\\').replace(/;/g,'\\;').replace(/,/g,'\\,').replace(/\n/g,'\\n');};
+  var summary=esc('Appraisal — '+(appt.a||'Property'));
+  var location=esc(appt.a||'');
+  var desc='Property Appraisal\\nOwner: '+(appt.n||'TBC');
+  if(appt.p)desc+='\\nPhone: '+appt.p;
+  if(appt.notes)desc+='\\n\\nNotes: '+appt.notes;
+  desc+='\\n\\n— Luxe Properties Melbourne';
+  desc=esc(desc).replace(/\\\\n/g,'\\n');
+  var uid='luxe-'+(appt.id||Date.now())+'@luxepropertiesmelbourne.com.au';
+  var ics='BEGIN:VCALENDAR\r\n'+
+    'VERSION:2.0\r\n'+
+    'PRODID:-//Luxe Properties Melbourne//Prospecting App//EN\r\n'+
+    'CALSCALE:GREGORIAN\r\n'+
+    'METHOD:PUBLISH\r\n'+
+    'BEGIN:VEVENT\r\n'+
+    'UID:'+uid+'\r\n'+
+    'DTSTAMP:'+fmt(new Date())+'\r\n'+
+    'DTSTART:'+fmt(start)+'\r\n'+
+    'DTEND:'+fmt(end)+'\r\n'+
+    'SUMMARY:'+summary+'\r\n'+
+    'LOCATION:'+location+'\r\n'+
+    'DESCRIPTION:'+desc+'\r\n'+
+    'ORGANIZER;CN=Alex Doguluer:mailto:alex@luxepropertiesmelbourne.com.au\r\n'+
+    'STATUS:CONFIRMED\r\n'+
+    'BEGIN:VALARM\r\n'+
+    'ACTION:DISPLAY\r\n'+
+    'TRIGGER:-PT1H\r\n'+
+    'DESCRIPTION:Appraisal in 1 hour\r\n'+
+    'END:VALARM\r\n'+
+    'END:VEVENT\r\n'+
+    'END:VCALENDAR\r\n';
+  var blob=new Blob([ics],{type:'text/calendar;charset=utf-8'});
+  var url=URL.createObjectURL(blob);
+  var a=document.createElement('a');
+  a.href=url;
+  a.download='appraisal-'+(appt.a||'').replace(/[^a-z0-9]/gi,'-').substring(0,40).toLowerCase()+'.ics';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  setTimeout(function(){URL.revokeObjectURL(url);},2000);
+  toast('Tap the file to add it to your calendar');
+}
+
+function showAddToCal(aid){
+  var a=gA().find(function(x){return String(x.id)===String(aid);});
+  if(!a){toast('Appointment not found');return;}
+  var html='<div class="sht"><div class="sht-h"></div>';
+  html+='<div class="sht-hdr"><div><div class="sht-ttl">📆 Add to Calendar</div>';
+  html+='<div class="sht-sub">'+(a.a||'')+'</div></div>';
+  html+='<button class="sht-x" onclick="cls()">✕</button></div>';
+  html+='<div class="sht-bd">';
+  html+='<div style="background:var(--gnbg);border:1.5px solid var(--green);border-radius:12px;padding:14px;margin-bottom:14px;text-align:center">';
+  html+='<div style="font-size:18px;font-weight:800;color:var(--text);font-family:Playfair Display,serif">'+fmtApptFull(a.d||a.date||'',a.time||'')+'</div>';
+  if(a.n)html+='<div style="font-size:12.5px;color:var(--muted);margin-top:6px">'+a.n+(a.p?' · '+a.p:'')+'</div>';
+  html+='</div>';
+  html+='<div style="display:flex;flex-direction:column;gap:8px">';
+  // iPhone / Universal — .ics file (best on mobile)
+  html+='<button class="btn btn-gd btn-fw" style="touch-action:manipulation" onclick="downloadICS(window._apptData[\''+aid+'\']||gA().find(function(x){return String(x.id)===\''+aid+'\';}));cls()">📱 Add to iPhone Calendar (.ics)</button>';
+  // Google Calendar web
+  html+='<button class="btn btn-bl btn-fw" style="touch-action:manipulation" onclick="addToCalendar(gA().find(function(x){return String(x.id)===\''+aid+'\';}));cls()">🟢 Open in Google Calendar</button>';
+  html+='</div>';
+  html+='<div style="margin-top:14px;padding:11px 13px;background:var(--card2);border-radius:10px;font-size:12px;color:var(--dim);line-height:1.5">';
+  html+='💡 <strong>iPhone Calendar option</strong> downloads a .ics file. Tap the downloaded file → Add to Calendar → it syncs automatically to alex@luxepropertiesmelbourne.com.au if your iCloud is linked to it.';
+  html+='</div>';
+  html+='</div>';
+  html+='<div class="sht-ft"><button class="btn btn-gh btn-fw" onclick="cls()">Close</button></div></div>';
+  modal(html);
+}
 function addToCalendar(appt){
   var d=parseApptDate(appt.d||appt.date||'');
   if(!d||isNaN(d)){toast('Invalid date — pick a date first');return;}
@@ -1753,7 +1896,8 @@ function showApptConfirm(ap){
   if(ap.p)html+='<div style="font-size:13px;color:var(--muted);margin-top:2px;font-family:monospace">'+ap.p+'</div>';
   html+='</div>';
   html+='<div style="display:flex;flex-direction:column;gap:8px">';
-  html+='<button class="btn btn-bl btn-fw" style="touch-action:manipulation" onclick="addToCalendar({a:\''+esc(ap.a)+'\',n:\''+esc(ap.n)+'\',d:\''+ap.d+'\',time:\''+ap.time+'\'})">📆 Add to Google Calendar</button>';
+  html+='<button class="btn btn-gd btn-fw" style="touch-action:manipulation" onclick="downloadICS({id:\''+ap.id+'\',a:\''+esc(ap.a)+'\',n:\''+esc(ap.n)+'\',p:\''+esc(ap.p||'')+'\',d:\''+ap.d+'\',time:\''+ap.time+'\',notes:\''+esc(ap.notes||'')+'\'})">📱 Add to iPhone Calendar (.ics)</button>';
+  html+='<button class="btn btn-bl btn-fw" style="touch-action:manipulation" onclick="addToCalendar({a:\''+esc(ap.a)+'\',n:\''+esc(ap.n)+'\',d:\''+ap.d+'\',time:\''+ap.time+'\'})">🟢 Add to Google Calendar</button>';
   if(ap.p){
     html+='<button class="btn btn-gd btn-fw" style="touch-action:manipulation" onclick="cls();go(\'appt\');setTimeout(function(){showApptSMS(\''+ap.id+'\');},250)">💬 Send Confirmation SMS</button>';
   }
