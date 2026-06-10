@@ -640,7 +640,13 @@ function oCont(id){S.cid=id;go('cdet');}
 function rHome(){
   var pp=gP().filter(function(p){return!p.archived;});
   var tot=pp.length,con=pp.filter(function(p){return!['uncontacted','no_data'].includes(p.status);}).length;
-  var hot=pp.filter(function(p){return p.isHot||gH().find(function(h){return h.a===p.a&&!h.archived;});}).length;
+  var hotProps=pp.filter(function(p){return p.isHot||gH().find(function(h){return h.a===p.a&&!h.archived;});});
+  var hotEntries=gH().filter(function(h){return!h.archived;});
+  // Count unique: properties with isHot OR hot list entries (no double counting same address)
+  var hotAddrs=new Set();
+  hotProps.forEach(function(p){if(p.a)hotAddrs.add(p.a.toUpperCase().trim());});
+  hotEntries.forEach(function(h){if(h.a)hotAddrs.add(h.a.toUpperCase().trim());});
+  var hot=hotAddrs.size;
   var int=pp.filter(function(p){return['interested','appointment'].includes(p.status);}).length;
   var cb=pp.filter(function(p){return p.status==='callback';}).length;
   var vm=pp.filter(function(p){return p.status==='voicemail';}).length;
@@ -745,6 +751,11 @@ function rSmart(){
   var pp=gP().filter(function(p){return!p.archived;});
   var hl=gH().filter(function(h){return!h.archived;});
   var hotS=pp.filter(function(p){return p.isHot||hl.find(function(h){return h.a===p.a;});});
+  // ALSO include hot list entries without matching property in DB
+  var hotAddrSet=new Set(hotS.map(function(p){return(p.a||'').toUpperCase().trim();}));
+  var orphanHot=hl.filter(function(h){return!hotAddrSet.has((h.a||'').toUpperCase().trim());})
+    .map(function(h){return{id:'h_'+h.id,a:h.a,n:h.n,p:h.p,status:'hot',isHot:true,_orphan:true};});
+  hotS=hotS.concat(orphanHot);
   var callL=pp.filter(function(p){return['callback','interested','voicemail','no_answer'].includes(p.status);});
   var all=[...new Map([...hotS,...callL].map(function(p){return[p.id,p];})).values()];
   var arch=gSA();var active=all.filter(function(p){return!arch.includes(p.id);});
@@ -1915,12 +1926,36 @@ function editM(id){var p=gP().find(function(x){return x.id===id;});if(!p)return;
 function saveEdit(id){var p=gP().find(function(x){return x.id===id;});if(!p)return;p.a=$('ea').value;p.s=$('es').value;p.n=$('en').value;p.p=fmtPh($('ep').value);p.e=$('ee').value;p.status=$('est').value;p.no=$('eno').value;p.estval=$('eev').value;p.beds=$('ebd').value;p.baths=$('eba').value;p.vtype=$('evt').value;sP();cls();toast('Saved ✓');if(S.pg==='pdet')rPDet();else rProps();}
 function delM(id){var p=gP().find(function(x){return x.id===id;});if(!p)return;modal('<div class="sht"><div class="sht-h"></div><div class="sht-hdr"><div><div class="sht-ttl">Delete Property?</div><div class="sht-sub">'+(p.a||'')+'</div></div><button class="sht-x" onclick="cls()">✕</button></div><div class="sht-bd"><div style="font-size:14px;color:var(--muted);line-height:1.6">This will permanently delete this property and all history.</div></div><div class="sht-ft"><button class="btn btn-gh" onclick="cls()">Cancel</button><button class="btn btn-rd" onclick="doDel('+id+')">Delete</button></div></div>');}
 function doDel(id){_props=gP().filter(function(p){return p.id!==id;});sP();cls();toast('Deleted');if(S.pg==='pdet')go('props',true);else rProps();bdg();}
-function togHot(id){var p=gP().find(function(x){return x.id===id;});if(!p)return;var hl=gH(),ex=hl.find(function(h){return h.a===p.a;});if(ex){ex.archived=!ex.archived;p.isHot=!ex.archived;}else{hl.push({id:'h'+Date.now(),a:p.a,n:p.n,p:p.p,category:'HOT STOCK',archived:false});p.isHot=true;}sH();sP();toast(p.isHot?'Added to Hot List 🔥':'Removed from Hot List');if(S.pg==='pdet')rPDet();else rProps();bdg();}
+function togHot(id){
+  var p=gP().find(function(x){return x.id===id;});
+  if(!p)return;
+  var hl=gH(),ex=hl.find(function(h){return h.a===p.a;});
+  if(ex){
+    ex.archived=!ex.archived;
+    p.isHot=!ex.archived;
+  } else {
+    hl.push({id:'h'+Date.now(),a:p.a,n:p.n,p:p.p,category:'HOT STOCK',archived:false});
+    p.isHot=true;
+  }
+  sH();sP();
+  toast(p.isHot?'Added to Hot List 🔥':'Removed from Hot List');
+  // Refresh whichever screen is currently visible
+  if(S.pg==='pdet')rPDet();
+  else if(S.pg==='hot')rHot();
+  else if(S.pg==='smart')rSmart();
+  else if(S.pg==='home')rHome();
+  else if(S.pg==='props')rProps();
+  bdg();
+}
 
 /* ── CALL MODAL ── */
 function callM(ph,nm,ad,pid){ph=fmtPh(($('call-ph')&&$('call-ph').value)||ph)||ph;modal('<div class="sht"><div class="sht-h"></div><div class="sht-hdr"><div><div class="sht-ttl">📞 Log Call</div><div class="sht-sub">'+(ad||nm||'')+'</div></div><button class="sht-x" onclick="cls()">✕</button></div><div class="sht-bd"><div class="fg" style="margin-bottom:12px"><div class="fl">Phone Number <span style="font-weight:400;text-transform:none;letter-spacing:0;color:var(--dim)">— tap to edit</span></div><div style="display:flex;gap:8px;align-items:center"><input class="fi" id="call-ph" type="tel" value="'+(ph||'')+'" placeholder="04XX XXX XXX" style="flex:1;font-size:17px;font-weight:600" oninput="var d=document.getElementById(\'call-dial\');if(d)d.href=\'tel:\'+this.value">'+(ph?'<a id="call-dial" href="tel:'+ph+'" class="btn btn-gn btn-sm" style="flex-shrink:0;text-decoration:none;white-space:nowrap">📞 Call</a>':'<a id="call-dial" href="tel:" class="btn btn-gn btn-sm" style="flex-shrink:0;text-decoration:none;white-space:nowrap;opacity:.4">📞 Call</a>')+'</div></div>'+(!ph?'<div style="background:var(--ambg);border:1px solid var(--amber);border-radius:12px;padding:10px 14px;font-size:13px;color:var(--amber);margin-bottom:12px">⚠️ No phone on file — enter above</div>':'')+'<div class="fg"><div class="fl">Outcome</div><div class="oc-g">'+'[["voicemail","📵","Voicemail"],["no_answer","🔕","No Answer"],["connected","✅","Connected"],["interested","⭐","Interested"],["not_interested","✗","Not Int."],["callback","🔄","Callback"],["appointment","📅","Booked"],["hung_up","📴","Hung Up"],["wrong_number","❌","Wrong No."]]'.split('],[').map(function(x){var f=x.replace(/^\[|\]$/g,'').split(',');var v=f[0].replace(/"/g,''),ic=f[1].replace(/"/g,''),lb=f[2].replace(/"/g,'');return'<div class="oc'+(v==='voicemail'?' on':'')+'" id="oc'+v+'" onclick="pickOc(\''+v+'\')"><span class="oc-i">'+ic+'</span><span class="oc-l">'+lb+'</span></div>';}).join('')+'</div></div><div class="fg"><div class="fl">Notes</div><textarea class="fta" id="cn" placeholder="What did they say?" style="min-height:80px"></textarea></div><div class="fg"><div class="fl">Next Action</div><input class="fi" id="cnx" placeholder="e.g. Call back in 2 weeks…"></div></div><div class="sht-ft"><button class="btn btn-gh" onclick="cls()">Cancel</button><button class="btn btn-gd" onclick="saveCall(\''+esc(ph||'')+'\',\''+esc(nm||'')+'\',\''+esc(ad||'')+'\','+(pid||'null')+')">Save</button></div></div>');window._oc='voicemail';}
 window.pickOc=function(v){document.querySelectorAll('.oc').forEach(function(e){e.classList.remove('on');});var e=$('oc'+v);if(e)e.classList.add('on');window._oc=v;};
-function saveCall(ph,nm,ad,pid){var realPh=fmtPh(($('call-ph')&&$('call-ph').value)||ph)||ph;var oc=window._oc||'voicemail',nt=$('cn').value,nx=$('cnx').value;gI().push({id:Date.now(),type:'call',propertyId:pid,address:ad,name:nm,phone:realPh,outcome:oc,notes:nt+(nx?'\nNext: '+nx:''),date:new Date().toISOString()});sI();if(pid){var p=gP().find(function(x){return x.id===pid;});if(p){p.status=oc;p.lastContact=new Date().toISOString();if(nt)p.no=nt;sP();}}cls();toast('Call logged · '+oc.replace(/_/g,' '));if(S.pg==='pdet')rPDet();bdg();if(['voicemail','connected','interested','callback'].includes(oc)&&realPh)setTimeout(function(){if(confirm('Send SMS follow-up?'))smsM(realPh,nm,ad,pid);},250);}
+function saveCall(ph,nm,ad,pid){var realPh=fmtPh(($('call-ph')&&$('call-ph').value)||ph)||ph;var oc=window._oc||'voicemail',nt=$('cn').value,nx=$('cnx').value;gI().push({id:Date.now(),type:'call',propertyId:pid,address:ad,name:nm,phone:realPh,outcome:oc,notes:nt+(nx?'\nNext: '+nx:''),date:new Date().toISOString()});sI();if(pid){var p=gP().find(function(x){return x.id===pid;});if(p){p.status=oc;p.lastContact=new Date().toISOString();if(nt)p.no=nt;sP();}}cls();toast('Call logged · '+oc.replace(/_/g,' '));if(S.pg==='pdet')rPDet();
+  else if(S.pg==='smart')rSmart();
+  else if(S.pg==='home')rHome();
+  else if(S.pg==='props')rProps();
+  bdg();if(['voicemail','connected','interested','callback'].includes(oc)&&realPh)setTimeout(function(){if(confirm('Send SMS follow-up?'))smsM(realPh,nm,ad,pid);},250);}
 
 /* ── SMS ── */
 function smsM(ph,nm,ad,pid){var fn=(nm||'').split(' ')[0]||'there';var ts=TMPLS.map(function(t){return Object.assign({},t,{t:t.t.replace(/\[Name\]/g,fn).replace(/\[Address\]/g,ad||'').replace(/\[Street\]/g,'').replace(/\[Suburb\]/g,'')});});modal('<div class="sht"><div class="sht-h"></div><div class="sht-hdr"><div><div class="sht-ttl">💬 SMS</div><div class="sht-sub">'+(nm||'Owner')+' · '+(ph||'No phone')+'</div></div><button class="sht-x" onclick="cls()">✕</button></div><div class="sht-bd"><div class="fg"><div class="fl">Template</div>'+ts.map(function(t,i){return'<div class="tc'+(i===0?' on':'')+'" id="st'+i+'" onclick="pickT('+i+')"><div class="tr">'+(i===0?'<span style="color:#000;font-size:11px;font-weight:900">✓</span>':'')+'</div><div style="flex:1;min-width:0"><div class="tc-n">'+t.n+'</div><div class="tc-p">'+t.t.substring(0,65)+'…</div></div></div>';}).join('')+'</div><div class="fg"><div class="fl">Message <span id="slen" style="font-weight:400;text-transform:none;letter-spacing:0;color:var(--dim);font-size:11px"></span></div><textarea class="fta" id="smst" style="min-height:120px" oninput="window._sm=this.value;$$(\'slen\').textContent=this.value.length+\' chars\'">'+(ts[0].t)+'</textarea></div></div><div class="sht-ft"><button class="btn btn-gh" onclick="cls()">Cancel</button>'+(ph?'<a class="btn btn-gd" id="smsl" href="sms:'+ph+'?body='+encodeURIComponent(ts[0].t)+'" onclick="logSMS(\''+esc(ph)+'\',\''+esc(nm)+'\',\''+esc(ad||'')+'\','+(pid||'null')+')">Open Messages →</a>':'<button class="btn btn-gd" disabled style="opacity:.35">No phone</button>')+'</div></div>');window._smTs=ts;window._smPh=ph;$('slen').textContent=ts[0].t.length+' chars';}
