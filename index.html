@@ -398,6 +398,26 @@ body.dark .vt-by{background:rgba(236,72,153,.2);color:#F9A8D4;}
 *{scrollbar-width:none;}*::-webkit-scrollbar{display:none;}
 .pf{font-family:'Playfair Display',serif;}
 
+
+/* ── PERFORMANCE ── */
+.row,.log-row,.act-row,.qa-chip,.tab,.stat-card{contain:layout style;}
+.sw{contain:layout;}
+.sw .row{will-change:transform;}
+.sw-acts{will-change:auto;}
+/* Smoother momentum scroll on iOS */
+#scr{-webkit-overflow-scrolling:touch;overscroll-behavior-y:contain;}
+/* GPU-accelerated swipe animation */
+.sw .row{transition:transform .25s cubic-bezier(.4,0,.2,1);}
+/* Faster tap response globally */
+button,a,.tab,.qa-chip,.stat-card,.chip,.row{-webkit-tap-highlight-color:transparent;}
+/* Prevent layout shifts during image load */
+.av,.av.rnd,.av.sm{background:var(--card2);}
+/* Modal smooth entry */
+.modal-bg{transition:opacity .2s ease;}
+.sht{transform:translateZ(0);}
+/* Skeleton loading shimmer */
+.skel{background:linear-gradient(90deg,var(--card2) 0%,var(--card) 50%,var(--card2) 100%);background-size:200% 100%;animation:shimmer 1.5s infinite linear;}
+@keyframes shimmer{0%{background-position:200% 0;}100%{background-position:-200% 0;}}
 </style>
 </head>
 <body class="light">
@@ -2494,24 +2514,101 @@ async function refreshListingAlerts(){
 }
 
 /* ── INIT ── */
+
+/* ── GLOBAL CALL/SMS TAP LOGGER ── */
+/* Catches every tel: and sms: link tap and logs to interactions */
+(function(){
+  var _lastLogged={};
+  document.addEventListener('click',function(e){
+    try{
+      var a=e.target.closest('a[href^="tel:"],a[href^="sms:"]');
+      if(!a)return;
+      var href=a.getAttribute('href')||'';
+      var isCall=href.indexOf('tel:')===0;
+      var phone=decodeURIComponent(href.replace(/^tel:|^sms:/,'').split('?')[0]).trim();
+      if(!phone)return;
+      // Dedupe: ignore same number tapped within 3 seconds
+      var now=Date.now();
+      var lastKey=(isCall?'c:':'s:')+phone;
+      if(_lastLogged[lastKey]&&(now-_lastLogged[lastKey])<3000)return;
+      _lastLogged[lastKey]=now;
+      // Find row context: address, name, propertyId
+      var row=a.closest('.row,.log-row,.sw');
+      var pid=null,addr='',name='';
+      if(row){
+        var html=row.innerHTML||'';
+        var m=html.match(/oProp\((\d+)\)/);
+        if(m)pid=parseInt(m[1]);
+        var rt=row.querySelector('.rt');
+        if(rt)addr=(rt.textContent||'').trim();
+        var rs=row.querySelector('.rs');
+        if(rs)name=(rs.textContent||'').split('·')[0].trim();
+      }
+      // Log the interaction
+      if(typeof gI==='function'&&typeof sI==='function'){
+        gI().push({
+          id:now,
+          type:isCall?'call':'sms',
+          propertyId:pid,
+          address:addr,
+          name:name,
+          phone:phone,
+          outcome:isCall?'dialled':'sent',
+          notes:'',
+          date:new Date().toISOString()
+        });
+        sI();
+        // Refresh visible pages without blocking the call/SMS
+        setTimeout(function(){
+          try{
+            if(typeof S!=='undefined'){
+              if(S.pg==='home'&&typeof rHome==='function')rHome();
+              else if(S.pg==='log'&&typeof rLog==='function')rLog();
+              else if(S.pg==='smart'&&typeof rSmart==='function')rSmart();
+            }
+            if(typeof bdg==='function')bdg();
+          }catch(_){}
+        },350);
+        // Brief feedback
+        if(typeof toast==='function'){
+          toast(isCall?'📞 Call logged':'💬 SMS logged');
+        }
+      }
+    }catch(err){console.log('tap log err',err);}
+  },true);
+})();
+
+
 window.addEventListener('DOMContentLoaded',function(){
-  // Auto-set Pricefinder key if not already set
+  // Auto-set Pricefinder key
   if(!localStorage.getItem('pf_token')){
     localStorage.setItem('pf_token','zPlfZYr_bxA');
     PF_TOKEN='zPlfZYr_bxA';
   } else {
     PF_TOKEN=localStorage.getItem('pf_token');
   }
-  // Auto-set Domain API key if not already set
+  // Auto-set Domain API key
   if(!localStorage.getItem('dm_token')){
     localStorage.setItem('dm_token','ykey_e3ad7f9132b55cd196bb10ecb8e9b962');
     DOMAIN_TOKEN='ykey_e3ad7f9132b55cd196bb10ecb8e9b962';
   } else {
     DOMAIN_TOKEN=localStorage.getItem('dm_token');
   }
-  mergeCsvData();
+  // Render the shell IMMEDIATELY for instant feel
   rTB();
   go('home');
+  // Defer heavy CSV merge to idle time so first paint is fast
+  if(window.requestIdleCallback){
+    requestIdleCallback(function(){
+      mergeCsvData();
+      if(S.pg==='home')rHome();
+    },{timeout:1500});
+  } else {
+    setTimeout(function(){
+      mergeCsvData();
+      if(S.pg==='home')rHome();
+    },50);
+  }
 });
 </script>
 </body>
