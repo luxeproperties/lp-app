@@ -647,9 +647,10 @@ function rTB(){
   } else if(p==='bulk'){
     tb.innerHTML='<button class="tb-back" onclick="go(S.prev||\'props\',true)">‹ Back</button><div style="flex:1;text-align:center;font-size:15px;font-weight:700;color:var(--text)">Bulk SMS</div>'+th;
   } else if(p==='log'){
-    tb.innerHTML='<div style="flex:1;font-size:18px;font-weight:800;color:var(--text)">📋 Call Log</div>'+th;
+    tb.innerHTML='<button class="tb-back" onclick="go(\'home\',true)">🏠 Home</button><div style="flex:1;text-align:center;font-size:15px;font-weight:700;color:var(--text)">📋 Call Log</div>'+th;
   } else {
-    tb.innerHTML='<div style="flex:1;font-size:18px;font-weight:800;color:var(--text)">'+(titles[p]||p)+'</div>'+th;
+    var hbtn='<button class="tb-back" onclick="go(\'home\',true)">🏠</button>';
+    tb.innerHTML=hbtn+'<div style="flex:1;text-align:center;font-size:15px;font-weight:700;color:var(--text)">'+(titles[p]||p)+'</div>'+th;
   }
 }
 
@@ -1853,7 +1854,7 @@ function logSendSMS(id){
 }
 
 /* ── BULK SMS ── */
-var TMPLS=[{n:'Market Update',t:"Hi [Name], it's Alex from Luxe Properties Melbourne. Properties in your area have been performing really well. If you've been thinking about selling, I'd love to chat about what your home could achieve. – Alex 📱"},{n:'Just Sold Nearby',t:"Hi [Name], Alex from Luxe Properties here. I just sold a property on your street for a fantastic result! Buyer demand is very high right now. I'd love to share what your home could achieve – can we have a quick call? – Alex"},{n:'Just Listed Nearby',t:"Hi [Name], it's Alex from Luxe Properties Melbourne. A property near you just hit the market and we're seeing great buyer interest. Now is a great time to discuss your home's value. – Alex"},{n:'Free Appraisal',t:"Hi [Name], Alex from Luxe Properties Melbourne. I'd love to offer you a free, no-obligation market appraisal. Our recent results in your area have been outstanding. Would you be open to a quick visit? – Alex"},{n:'Introduction',t:"Hi [Name], my name is Alex Doguluer from Luxe Properties Melbourne. I work with homeowners in your area and wanted to introduce myself. If you'd like to know your home's value, I'm always happy to help. – Alex"},{n:'Re-engagement',t:"Hi [Name], Alex from Luxe Properties here. It's been a while – hope all is well! The market in your area has shifted and I'd love to share an updated appraisal when you have a moment. – Alex"},{n:'Auction Result',t:"Hi [Name], Alex from Luxe Properties here. We just had a fantastic auction result near you! Buyer competition is strong right now. Would you like to know what your home could achieve? – Alex"},{n:'Custom',t:"Hi [Name], "}];
+var TMPLS=[{n:'Market Update',t:"Hi [Name], it's Alex from Luxe Properties Melbourne. Properties in your area have been performing really well. If you've been thinking about selling, I'd love to chat about what your home could achieve. – Alex 📱"},{n:'Just Sold Nearby',t:"Hi [Name], Alex from Luxe Properties here. I just sold a property on your street for a fantastic result! Buyer demand is very high right now. I'd love to share what your home could achieve – can we have a quick call? – Alex"},{n:'Just Listed Nearby',t:"Hi [Name], it's Alex from Luxe Properties Melbourne. A property near you just hit the market and we're seeing great buyer interest. Now is a great time to discuss your home's value. – Alex"},{n:'Free Appraisal',t:"Hi [Name], Alex from Luxe Properties Melbourne. I'd love to offer you a free, no-obligation market appraisal. Our recent results in your area have been outstanding. Would you be open to a quick visit? – Alex"},{n:'Introduction',t:"Hi [Name], my name is Alex Doguluer from Luxe Properties Melbourne. I work with homeowners in your area and wanted to introduce myself. If you'd like to know your home's value, I'm always happy to help. – Alex"},{n:'Re-engagement',t:"Hi [Name], Alex from Luxe Properties here. It's been a while – hope all is well! The market in your area has shifted and I'd love to share an updated appraisal when you have a moment. – Alex"},{n:'Auction Result',t:"Hi [Name], Alex from Luxe Properties here. We just had a fantastic auction result near you! Buyer competition is strong right now. Would you like to know what your home could achieve? – Alex"},{n:'Post Appraisal',t:"Hi [Name], it's Alex Doguluer from Luxe Properties Melbourne. Thank you so much for your time today – it was a pleasure visiting your home at [Address]. I'm confident we can achieve a great result for you. When you're ready to give us the green light, I'm here to make it happen. – Alex 📱"},{n:'Custom',t:"Hi [Name], "}];
 
 function rBulk(){
   var ov=window._bkOv;var awp=gP().filter(function(p){return!p.archived&&p.p;});var sts=[...new Set(awp.map(function(p){return p.s;}))].sort();
@@ -2649,6 +2650,91 @@ window.addEventListener('DOMContentLoaded',function(){
     },50);
   }
 });
+
+function showSyncModal(){
+  var modal=document.createElement('div');
+  modal.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:9999;display:flex;align-items:flex-end;justify-content:center';
+  modal.innerHTML='<div style="background:var(--card);border-radius:20px 20px 0 0;width:100%;max-width:480px;padding:24px 20px 40px">'+
+    '<div style="text-align:center;margin-bottom:20px"><div style="font-size:18px;font-weight:800;color:var(--text)">🔄 Sync Data</div>'+
+    '<div style="font-size:13px;color:var(--muted);margin-top:4px">Export your data or import from another device</div></div>'+
+    '<button class="btn btn-gd" style="width:100%;margin-bottom:12px" onclick="exportAllData()">⬇ Export My Data (JSON)</button>'+
+    '<button class="btn btn-gh" style="width:100%;margin-bottom:12px" onclick="showImportData()">⬆ Import Data from Another Device</button>'+
+    '<button class="btn" style="width:100%;background:var(--border);color:var(--text)" onclick="this.closest(\'div[style*=fixed]\').remove()">Cancel</button>'+
+    '</div>';
+  document.body.appendChild(modal);
+  modal.addEventListener('click',function(e){if(e.target===modal)modal.remove();});
+}
+
+function exportAllData(){
+  var data={
+    version:2,
+    exported:new Date().toISOString(),
+    properties:JSON.parse(localStorage.getItem('lp_props')||'[]'),
+    contacts:JSON.parse(localStorage.getItem('lp_contacts')||'[]'),
+    hotlist:JSON.parse(localStorage.getItem('lp_hot')||'[]'),
+    appointments:JSON.parse(localStorage.getItem('lp_appts')||'[]'),
+    interactions:JSON.parse(localStorage.getItem('lp_log')||'[]'),
+    todos:JSON.parse(localStorage.getItem('lp_todos')||'[]'),
+    settings:{theme:S.theme}
+  };
+  var blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});
+  var url=URL.createObjectURL(blob);
+  var a=document.createElement('a');
+  a.href=url;a.download='luxe-data-'+new Date().toISOString().slice(0,10)+'.json';
+  a.click();URL.revokeObjectURL(url);
+  toast('✅ Data exported successfully');
+}
+
+function showImportData(){
+  document.querySelectorAll('div[style*="fixed"][style*="9999"]').forEach(function(el){el.remove();});
+  var modal=document.createElement('div');
+  modal.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:9999;display:flex;align-items:flex-end;justify-content:center';
+  modal.innerHTML='<div style="background:var(--card);border-radius:20px 20px 0 0;width:100%;max-width:480px;padding:24px 20px 40px">'+
+    '<div style="font-size:17px;font-weight:800;color:var(--text);margin-bottom:8px">⬆ Import Data</div>'+
+    '<div style="font-size:13px;color:var(--muted);margin-bottom:12px">Paste the JSON from your exported file below:</div>'+
+    '<textarea id="imp_ta" style="width:100%;height:120px;border-radius:10px;border:1.5px solid var(--border);background:var(--bg);color:var(--text);padding:10px;font-size:13px;font-family:monospace;resize:none" placeholder='Paste exported JSON here...'></textarea>'+
+    '<button class="btn btn-gd" style="width:100%;margin-top:12px" onclick="doImportData()">Import & Merge</button>'+
+    '<button class="btn btn-gh" style="width:100%;margin-top:8px" onclick="this.closest(\'div[style*=fixed]\').remove()">Cancel</button>'+
+    '</div>';
+  document.body.appendChild(modal);
+}
+
+function doImportData(){
+  var ta=document.getElementById('imp_ta');
+  if(!ta||!ta.value.trim()){toast('❌ Nothing to import');return;}
+  try{
+    var d=JSON.parse(ta.value.trim());
+    var merged=0;
+    if(d.interactions&&d.interactions.length){
+      var existing=JSON.parse(localStorage.getItem('lp_log')||'[]');
+      var ids=new Set(existing.map(function(x){return x.id;}));
+      d.interactions.forEach(function(x){if(!ids.has(x.id)){existing.push(x);merged++;}});
+      localStorage.setItem('lp_log',JSON.stringify(existing));
+    }
+    if(d.appointments&&d.appointments.length){
+      var ea=JSON.parse(localStorage.getItem('lp_appts')||'[]');
+      var aids=new Set(ea.map(function(x){return x.id;}));
+      d.appointments.forEach(function(x){if(!aids.has(x.id)){ea.push(x);merged++;}});
+      localStorage.setItem('lp_appts',JSON.stringify(ea));
+    }
+    if(d.hotlist&&d.hotlist.length){
+      var eh=JSON.parse(localStorage.getItem('lp_hot')||'[]');
+      var hids=new Set(eh.map(function(x){return x.id;}));
+      d.hotlist.forEach(function(x){if(!hids.has(x.id)){eh.push(x);merged++;}});
+      localStorage.setItem('lp_hot',JSON.stringify(eh));
+    }
+    if(d.todos&&d.todos.length){
+      var et=JSON.parse(localStorage.getItem('lp_todos')||'[]');
+      var tids=new Set(et.map(function(x){return x.id;}));
+      d.todos.forEach(function(x){if(!tids.has(x.id)){et.push(x);merged++;}});
+      localStorage.setItem('lp_todos',JSON.stringify(et));
+    }
+    document.querySelectorAll('div[style*="fixed"][style*="9999"]').forEach(function(el){el.remove();});
+    toast('✅ Imported '+merged+' new records');
+    go(S.pg);
+  }catch(e){toast('❌ Invalid JSON – check the file');}
+}
+
 </script>
 </body>
 </html>
